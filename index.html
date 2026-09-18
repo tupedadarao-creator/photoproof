@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PhotoProof Studio - Luxury Live Selection & Client Proofing</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            ios: {
+              green: '#34c759',
+              red: '#ff3b30',
+              amber: '#ff9500',
+              indigo: '#5e5ce6'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom iOS 18 Luxury Stylesheet -->
+  <link rel="stylesheet" href="styles.css?v=20260918_v9">
+  
+  <!-- Bulletproof Modal Open/Close Global Functions -->
+  <script>
+    window.openDriveModal = function() {
+      var modal = document.getElementById('importModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        var input = document.getElementById('linkInput');
+        if (input) setTimeout(function() { input.focus(); }, 100);
+      }
+    };
+    window.closeDriveModal = function() {
+      var modal = document.getElementById('importModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    };
+    window.startDriveSync = function() {
+      var linkInput = document.getElementById('linkInput');
+      var altInput = document.getElementById('importDriveBridgeUrlInput');
+      var val = (linkInput && linkInput.value.trim()) || '';
+      if (!val && altInput && altInput.value.trim()) {
+        val = altInput.value.trim();
+      }
+      if (!val) {
+        alert("कृपया प्रथम Google Drive फोल्डरची लिंक पेस्ट करा!");
+        if (linkInput) linkInput.focus();
+        return;
+      }
+      var title = (document.getElementById('albumTitleInput') && document.getElementById('albumTitleInput').value.trim()) || "Event Photo Proofing";
+
+      if (!window.app && typeof PhotoProofApp === 'function') {
+        try {
+          window.app = new PhotoProofApp();
+        } catch(e) {
+          console.error("Init PhotoProofApp error:", e);
+        }
+      }
+
+      if (window.app && typeof window.app.handleImport === 'function') {
+        window.app.handleImport(val, title);
+      } else {
+        var btn = document.getElementById('processLinksBtn');
+        if (btn) {
+          btn.disabled = true;
+          btn.innerHTML = '<div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div><span>Extracting Google Drive Photos...</span>';
+        }
+        fetch('/api/folder?url=' + encodeURIComponent(val))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>⚡ Start Proofing & Sync Photos (सर्व फोटो लोड करा)</span>'; }
+            if (data.success && data.photos && data.photos.length > 0) {
+              if (window.app && typeof window.app.loadLocalPhotos === 'function') {
+                window.app.loadLocalPhotos(data.photos, title);
+                window.app.createRemoteSession(title, data.photos, val);
+              }
+              window.closeDriveModal();
+            } else {
+              alert("गुगल ड्राइव्ह फोटो लोड होऊ शकले नाहीत. कृपया खात्री करा की फोल्डरचे शेअरिंग 'Anyone with the link can view' आहे.");
+            }
+          })
+          .catch(function(err) {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>⚡ Start Proofing & Sync Photos (सर्व फोटो लोड करा)</span>'; }
+            alert("Sync Error: " + err.message);
+          });
+      }
+    };
+    window.openBrandModal = function() {
+      var modal = document.getElementById('brandingModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+      }
+    };
+    window.closeBrandModal = function() {
+      var modal = document.getElementById('brandingModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+      }
+    };
+  </script>
+</head>
+<body class="bg-[#050609] text-gray-100 flex flex-col h-screen w-screen overflow-hidden select-none">
+
+  <!-- Ambient Luxury Studio Glow -->
+  <div class="ambient-glow"></div>
+
+  <!-- Screen Edge Glow Flash Overlay (On Select/Reject/Decide) -->
+  <div id="screenFlashOverlay" class="screen-flash"></div>
+
+  <!-- Center Dynamic Pop Stamp (Animated Haptic Burst) -->
+  <div id="popStamp" class="decision-pop-stamp">
+    <span id="popStampText">SELECTED</span>
+  </div>
+
+  <!-- 🌟 DYNAMIC ISLAND HEADER (FLOATING TOP CAPSULE) 🌟 -->
+  <header id="dynamicIsland" class="dynamic-island">
+    
+    <!-- Left: Studio Brand & Live Presence Indicator -->
+    <div class="flex items-center gap-2.5 pr-2 border-r border-white/10">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <i data-lucide="camera" class="w-4 h-4 text-white"></i>
+      </div>
+      <div class="hidden sm:block">
+        <div class="flex items-center gap-1.5">
+          <span class="text-xs font-extrabold tracking-tight text-white">PhotoProof</span>
+          <span class="text-[9px] uppercase font-black tracking-widest px-1.5 py-0.2 rounded-md bg-indigo-500/25 text-indigo-300">PRO</span>
+        </div>
+        <p id="sessionTitleDisplay" class="text-[10px] text-gray-400 font-medium truncate max-w-[130px]">Wedding Selection</p>
+      </div>
+    </div>
+
+    <!-- Center: Live Phone-Call Co-View Indicator & Live Stats -->
+    <div class="flex items-center gap-2">
+      <!-- Live Sync Capsule with Pulse Dot -->
+      <div class="flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/50 border border-white/10">
+        <span class="live-indicator-dot"></span>
+        <span id="liveStatusText" class="text-[10px] font-black tracking-wider text-emerald-400 uppercase">LIVE SYNC</span>
+        <span id="viewerCountText" class="text-[10px] font-mono text-gray-400 hidden sm:inline">1 Connected</span>
+      </div>
+
+      <!-- Decision Stats Counter Pills -->
+      <div class="flex items-center gap-1">
+        <div class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-bold">
+          <span>✓</span>
+          <span id="countSelected" class="font-mono text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-400 text-[11px] font-bold">
+          <span>✕</span>
+          <span id="countRejected" class="font-mono text-white">0</span>
+        </div>
+        <div class="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[11px] font-bold">
+          <span>⏳</span>
+          <span id="countMaybe" class="font-mono text-white">0</span>
+        </div>
+        <span id="countTotal" class="hidden">0</span>
+      </div>
+
+      <!-- Slim Progress Bar for Slideshow -->
+      <div class="hidden lg:block w-14 h-1 bg-white/10 rounded-full overflow-hidden ml-1">
+        <div id="progressBar" class="h-full bg-indigo-500 w-0 transition-all duration-100"></div>
+      </div>
+    </div>
+
+    <!-- Right: Quick Studio Action Buttons -->
+    <div class="flex items-center gap-1.5 pl-2 border-l border-white/10">
+      <!-- 📁 ONE SINGLE GOOGLE DRIVE SYNC BUTTON 📁 -->
+      <button id="openImportBtn" onclick="window.openDriveModal()" title="Google Drive Link & 3-Folder Sync" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer ring-1 ring-white/20">
+        <i data-lucide="cloud-cog" class="w-4 h-4 text-white"></i>
+        <span>📁 Google Drive Sync</span>
+      </button>
+
+      <!-- Share Link with Client (Instant QR & Mobile Sync) -->
+      <button id="openShareBtn" title="Share with Client (QR Code & Mobile Link)" class="ios-pill p-1.5 px-2.5 rounded-xl text-indigo-300 hover:text-white transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold">
+        <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+        <span>Share</span>
+      </button>
+
+      <!-- Export Selected for Lightroom / Print -->
+      <button id="openExportBtn" title="Export Selected Photos" class="ios-pill p-1.5 rounded-xl text-gray-300 hover:text-white transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold">
+        <i data-lucide="file-down" class="w-3.5 h-3.5"></i>
+        <span class="hidden md:inline">Export</span>
+      </button>
+
+      <!-- Sound FX Toggle -->
+      <button id="soundToggleBtn" title="Toggle Sound FX" class="ios-pill p-1.5 rounded-xl text-gray-400 hover:text-white transition cursor-pointer">
+        <i id="soundIconOn" data-lucide="volume-2" class="w-3.5 h-3.5 text-emerald-400"></i>
+        <i id="soundIconOff" data-lucide="volume-x" class="w-3.5 h-3.5 text-gray-500 hidden"></i>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button id="fullscreenBtn" title="Fullscreen (F)" class="ios-pill p-1.5 rounded-xl text-gray-400 hover:text-white transition cursor-pointer hidden sm:block">
+        <i data-lucide="maximize" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT CANVAS -->
+  <main id="imageCanvas" class="image-canvas relative flex-1 cursor-default">
+    
+    <!-- Image Wrapper with progressive preview and touch gesture transform -->
+    <div id="imageWrapper" class="relative flex items-center justify-center w-full h-full">
+      <div id="progressivePreviewLayer" class="progressive-preview-layer hidden">
+        <img id="progressivePreviewImg" src="" alt="Preview" draggable="false" />
+      </div>
+      <img id="activeImage" 
+           src="" 
+           alt="Proof Photo" 
+           class="active-image pointer-events-auto relative z-10"
+           draggable="false" />
+    </div>
+
+    <!-- Active Decision Status Badge Overlay on Photo -->
+    <div id="photoBadge" class="photo-decision-watermark hidden">Selected</div>
+
+    <!-- Floating Quick Download Button (Always 100% visible on canvas & mobile) -->
+    <button id="quickDownloadBtn" 
+            aria-label="Download Photo with Watermark" 
+            title="Download Watermarked Photo" 
+            class="floating-quick-download">
+      <i data-lucide="download" class="w-4 h-4 text-emerald-400"></i>
+      <span>Download</span>
+    </button>
+
+    <!-- Loading Shimmer / Spinner -->
+    <div id="loadingSpinner" class="hidden absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-30 pointer-events-none transition-opacity">
+      <div class="flex flex-col items-center gap-2.5 pointer-events-auto bg-black/70 px-4 py-3 rounded-2xl border border-white/10">
+        <div class="w-8 h-8 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+        <span class="text-xs font-semibold text-gray-300 tracking-wide">Syncing Photo...</span>
+      </div>
+    </div>
+
+    <!-- Overlay Navigation Buttons (Left / Right) -->
+    <button id="prevBtn" 
+            aria-label="Previous Photo" 
+            title="Previous (Left Arrow / Swipe Right)" 
+            class="nav-btn nav-cue-left player-chrome absolute left-4 sm:left-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center group cursor-pointer">
+      <i data-lucide="chevron-left" class="w-6 h-6 sm:w-7 sm:h-7 text-white group-hover:-translate-x-0.5 transition-transform"></i>
+    </button>
+
+    <button id="nextBtn" 
+            aria-label="Next Photo" 
+            title="Next (Right Arrow / Swipe Left)" 
+            class="nav-btn nav-cue-right player-chrome absolute right-4 sm:right-8 top-1/2 -translate-y-1/2 z-30 w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center group cursor-pointer">
+      <i data-lucide="chevron-right" class="w-6 h-6 sm:w-7 sm:h-7 text-white group-hover:translate-x-0.5 transition-transform"></i>
+    </button>
+
+    <!-- Download with Watermark Floating Action Button -->
+    <button id="downloadBtn" 
+            aria-label="Download Photo with Watermark" 
+            title="Download Watermarked Photo" 
+            class="hidden sm:flex nav-btn player-chrome absolute right-6 sm:right-10 bottom-36 sm:bottom-40 z-30 px-4 py-2.5 rounded-2xl items-center gap-2 text-xs sm:text-sm font-bold text-white cursor-pointer bg-gradient-to-r from-indigo-600/80 to-purple-600/80 hover:from-indigo-600 hover:to-purple-600 border border-white/20 shadow-xl">
+      <i data-lucide="download" class="w-4 h-4 text-white"></i>
+      <span>Download</span>
+    </button>
+
+  </main>
+
+  <!-- 🌟 BOTTOM SELECTION SUITE & FILMSTRIP (FCPX SAFE DOCK) 🌟 -->
+  <footer id="bottomBar" class="player-chrome studio-bottom-dock">
+    <div class="max-w-5xl mx-auto flex flex-col items-center">
+      
+      <!-- 🌟 THE 3 PROPER VISIBLE DECISION BUTTONS: SELECT / REJECT / DECIDE 🌟 -->
+      <div class="ios-decision-dock mb-3">
+        <!-- 1. SELECT BUTTON -->
+        <button id="btnSelect" 
+                class="decision-btn btn-select">
+          <i data-lucide="check-circle" class="w-6 h-6 sm:w-7 sm:h-7"></i>
+          <span>SELECT</span>
+          <span class="text-[11px] font-mono opacity-60 hidden sm:inline">[S / 1]</span>
+        </button>
+
+        <!-- 2. REJECT BUTTON -->
+        <button id="btnReject" 
+                class="decision-btn btn-reject">
+          <i data-lucide="x-circle" class="w-6 h-6 sm:w-7 sm:h-7"></i>
+          <span>REJECT</span>
+          <span class="text-[11px] font-mono opacity-60 hidden sm:inline">[R / 2]</span>
+        </button>
+
+        <!-- 3. DECIDE BUTTON -->
+        <button id="btnMaybe" 
+                class="decision-btn btn-maybe">
+          <i data-lucide="help-circle" class="w-6 h-6 sm:w-7 sm:h-7"></i>
+          <span>DECIDE</span>
+          <span class="text-[11px] font-mono opacity-60 hidden sm:inline">[M / 3]</span>
+        </button>
+      </div>
+
+      <!-- FILTER TABS & PHOTO INFO BAR -->
+      <div class="flex flex-wrap items-center justify-between w-full max-w-4xl mb-2 gap-2 px-2">
+        <div class="flex items-center gap-2">
+          <span id="currentPhotoName" class="text-xs font-semibold text-gray-200 truncate max-w-[140px] sm:max-w-xs">Loading...</span>
+          <span id="photoCounter" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-gray-300">1 / 5</span>
+          <button id="mobileSaveBtn" class="sm:hidden px-2 py-0.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="download" class="w-3 h-3"></i>
+            <span>Save</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <button id="filterAll" class="filter-pill active">All</button>
+          <button id="filterSelected" class="filter-pill">Selected</button>
+          <button id="filterRejected" class="filter-pill">Rejected</button>
+          <button id="filterMaybe" class="filter-pill">Decide</button>
+          <button id="filterPending" class="filter-pill">Pending</button>
+        </div>
+      </div>
+
+      <!-- Filmstrip Thumbnails Bar -->
+      <div id="filmstrip" class="filmstrip-container w-full max-w-4xl ios-glass rounded-2xl mb-2">
+        <!-- Dynamically rendered via app.js with status dots -->
+      </div>
+
+      <!-- Hotkey & Gesture Hints -->
+      <div class="flex items-center justify-center gap-3 sm:gap-5 text-[11px] text-gray-400 font-medium">
+        <span class="flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-[10px]">← / →</kbd> Navigate</span>
+        <span class="flex items-center gap-1 text-emerald-400 font-semibold"><kbd class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px]">S / ↑</kbd> Select</span>
+        <span class="flex items-center gap-1 text-rose-400 font-semibold"><kbd class="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[10px]">R / ↓</kbd> Reject</span>
+        <span class="flex items-center gap-1 text-amber-400 font-semibold"><kbd class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px]">M</kbd> Decide</span>
+        <span class="hidden sm:inline-flex items-center gap-1"><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-gray-300 font-mono text-[10px]">E</kbd> Export</span>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- MODAL 1: IMPORT GOOGLE DRIVE FOLDER -->
+  <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="ios-glass w-full max-w-xl rounded-3xl p-6 sm:p-8 relative my-auto">
+      <button id="importCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <i data-lucide="folder-search" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Import Google Drive Event</h2>
+          <p class="text-xs text-gray-400">Load 50 to 5000+ photos automatically from a single folder link</p>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Event / Album Title</label>
+        <input id="albumTitleInput" 
+               type="text" 
+               placeholder="e.g. Rohit & Priya Wedding Proofing" 
+               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition" />
+      </div>
+
+      <!-- 🌟 INPUT & OUTPUT GOOGLE DRIVE LINKS 🌟 -->
+      <div class="space-y-3 mb-4">
+        <div>
+          <label class="block text-xs font-bold text-indigo-400 mb-1 flex items-center gap-1.5 uppercase tracking-wider">
+            <i data-lucide="folder-input" class="w-4 h-4"></i>
+            <span>1. Input Drive Link (क्लायंटला दाखवायचे मूळ फोटो)</span>
+          </label>
+          <input id="linkInput" 
+                 type="text" 
+                 placeholder="Google Drive Proofing Folder Link पेस्ट करा..." 
+                 class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-emerald-400 mb-1 flex items-center gap-1.5 uppercase tracking-wider">
+            <i data-lucide="folder-output" class="w-4 h-4"></i>
+            <span>2. Output Drive Link (निवडलेले फोटो सेव्ह करण्यासाठी फोल्डर)</span>
+          </label>
+          <input id="importDriveBridgeUrlInput" 
+                 type="text" 
+                 placeholder="Google Drive Selected Photos Destination Link पेस्ट करा..." 
+                 class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-emerald-300 font-mono placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition" />
+        </div>
+
+        <!-- 🌟 PHOTOGRAPHER LOGO & WATERMARK SETTINGS 🌟 -->
+        <div class="bg-gradient-to-br from-purple-950/30 to-indigo-950/30 border border-purple-500/25 rounded-2xl p-3.5 mt-3">
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
+              <i data-lucide="stamp" class="w-4 h-4 text-purple-400"></i>
+              <span>3. Studio Logo / Watermark (डाऊनलोड वॉटरमार्क)</span>
+            </label>
+            <span class="text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30">Auto Watermark</span>
+          </div>
+          <p class="text-[11px] text-gray-300 mb-2">
+            क्लायंटने गॅलरीमधून कोणताही फोटो डाऊनलोड केल्यास उजव्या कोपऱ्यात तुमचा ब्रँड/लोगो आपोआप जोडला जाईल.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div>
+              <input id="importPhotographerName" 
+                     type="text" 
+                     placeholder="Studio Name (e.g. Royal Photography)" 
+                     class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition" />
+            </div>
+            <div>
+              <input id="importLogoFileInput" 
+                     type="file" 
+                     accept="image/*" 
+                     class="w-full text-[11px] text-gray-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer bg-black/50 rounded-xl border border-white/10 p-1" />
+            </div>
+          </div>
+          <div id="importLogoPreviewContainer" class="hidden mt-2 flex items-center gap-3 bg-black/60 p-2 rounded-xl border border-purple-500/30">
+            <img id="importLogoPreview" src="" alt="Logo Preview" class="h-7 max-w-[120px] object-contain rounded bg-white/10 p-1" />
+            <span class="text-[11px] text-emerald-400 font-bold">✓ लोगो वॉटरमार्क तयार आहे!</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2 text-[11px] text-gray-300 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
+          <span>टीप: फोल्डर शेअरिंग <strong>"Anyone with the link can view"</strong> असणे आवश्यक आहे.</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
+        <button id="processLinksBtn" type="button" onclick="window.startDriveSync()" class="w-full sm:flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition transform active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>⚡ Start Proofing & Sync Photos (सर्व फोटो लोड करा)</span>
+        </button>
+        <button id="loadDemoBtn" class="w-full sm:w-auto py-3 px-4 rounded-xl ios-pill text-gray-300 hover:text-white text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <i data-lucide="image" class="w-4 h-4 text-emerald-400"></i>
+          <span>Sample Demo</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: SHARE LINK WITH CLIENT (WITH QR CODE & MULTI-DEVICE SUPPORT) -->
+  <div id="shareModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="ios-glass w-full max-w-lg rounded-3xl p-6 sm:p-8 relative my-auto">
+      <button id="shareModalCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <i data-lucide="share-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Share Portal with Client</h2>
+          <p class="text-xs text-gray-400">Sub-30ms Real-Time Zero Lag Sync for Live Phone Calls</p>
+        </div>
+      </div>
+
+      <!-- QR Code & Quick Scan -->
+      <div class="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 mb-4">
+        <div class="p-2 bg-white rounded-2xl shadow-xl flex-shrink-0">
+          <img id="qrCodeImg" src="" alt="Scan QR Code to open on phone" class="w-28 h-28 object-contain" />
+        </div>
+        <div class="text-xs text-gray-300">
+          <p class="font-bold text-emerald-400 mb-1 flex items-center gap-1.5">
+            <i data-lucide="smartphone" class="w-4 h-4"></i>
+            <span>Scan with Phone Camera</span>
+          </p>
+          <p class="text-gray-400 leading-relaxed">Point your phone's camera at the QR code to open the selection portal instantly. Whatever photo you view on Mac, the phone mirrors in real-time!</p>
+        </div>
+      </div>
+
+      <!-- Mobile & Client Link (Wi-Fi / LAN) -->
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <i data-lucide="wifi" class="w-3.5 h-3.5"></i>
+          <span>Mobile / Client Link (Phone, Tablet, Other Laptops)</span>
+        </label>
+        <div class="flex items-center gap-2">
+          <input id="networkUrlInput" 
+                 type="text" 
+                 readonly 
+                 class="w-full bg-black/60 border border-emerald-500/30 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono focus:outline-none select-all" />
+          <button id="copyNetworkBtn" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+        <p class="text-[10px] text-gray-400 mt-1">Works for anyone connected to the same Wi-Fi network.</p>
+      </div>
+
+      <!-- Local Computer Link -->
+      <div class="mb-2">
+        <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 flex items-center gap-1.5">
+          <i data-lucide="laptop" class="w-3.5 h-3.5"></i>
+          <span>Local Mac Link</span>
+        </label>
+        <div class="flex items-center gap-2">
+          <input id="localUrlInput" 
+                 type="text" 
+                 readonly 
+                 class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-gray-300 font-mono focus:outline-none select-all" />
+          <button id="copyLocalBtn" class="px-3.5 py-2 rounded-xl ios-pill text-gray-300 hover:text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: GOOGLE DRIVE 3-FOLDER AUTOMATION (`Selected`, `Rejected`, `Decide`) -->
+  <div id="driveModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="ios-glass w-full max-w-lg rounded-3xl p-6 sm:p-8 relative my-auto">
+      <button id="driveModalCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-emerald-600/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <i data-lucide="folder-git-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Google Drive 3-Folder Automation</h2>
+          <p class="text-xs text-gray-400">Auto-sorts into Selected, Rejected, and Decide folders</p>
+        </div>
+      </div>
+
+      <!-- 3-Folders Live Status -->
+      <div class="grid grid-cols-3 gap-2.5 mb-4">
+        <div class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+          <span class="text-[11px] font-bold text-emerald-400 block mb-1">📁 Selected</span>
+          <span id="folderCountSelected" class="text-lg font-extrabold text-white font-mono">0</span>
+        </div>
+        <div class="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-center">
+          <span class="text-[11px] font-bold text-rose-400 block mb-1">📁 Rejected</span>
+          <span id="folderCountRejected" class="text-lg font-extrabold text-white font-mono">0</span>
+        </div>
+        <div class="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center">
+          <span class="text-[11px] font-bold text-amber-400 block mb-1">📁 Decide</span>
+          <span id="folderCountDecide" class="text-lg font-extrabold text-white font-mono">0</span>
+        </div>
+      </div>
+
+      <!-- Google Apps Script Bridge Setup -->
+      <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 mb-4 text-xs text-gray-300 space-y-2">
+        <p class="font-bold text-emerald-400 flex items-center gap-1.5">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>How Automatic Drive Folder Sync Works:</span>
+        </p>
+        <p class="text-[11px] text-gray-400 leading-relaxed">
+          Google Drive requires user authorization to create folders and move files. With our free <strong>Google Apps Script Bridge</strong>, the 3 subfolders are created inside your event folder on Google Drive and sorted in real-time as you rate photos!
+        </p>
+      </div>
+
+      <!-- Bridge URL Input -->
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Google Apps Script Web App URL (Optional)</label>
+        <input id="driveBridgeUrlInput" 
+               type="text" 
+               placeholder="https://script.google.com/macros/s/.../exec" 
+               class="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 transition" />
+      </div>
+
+      <div class="flex gap-2">
+        <button id="saveDriveBridgeBtn" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-emerald-600/30">
+          Save & Link Drive Bridge
+        </button>
+        <button id="syncDriveNowBtn" class="px-4 py-3 rounded-xl ios-pill text-gray-300 hover:text-white text-xs font-bold transition cursor-pointer">
+          Sync Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: BRANDING & WATERMARK -->
+  <div id="brandingModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="ios-glass w-full max-w-lg rounded-3xl p-6 sm:p-8 relative my-auto">
+      <button id="brandingModalCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-purple-600/30 border border-purple-500/30 flex items-center justify-center text-purple-400">
+          <i data-lucide="stamp" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Photographer Branding</h2>
+          <p class="text-xs text-gray-400">Watermark placed automatically on client downloads</p>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Studio / Photographer Name</label>
+        <input id="photographerNameInput" 
+               type="text" 
+               placeholder="e.g. Royal Wedding Moments" 
+               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition" />
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Photographer Logo (PNG / JPG)</label>
+        <div class="flex flex-col gap-2">
+          <input id="logoFileInput" type="file" accept="image/png, image/jpeg, image/webp" class="block w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-600/30 file:text-purple-300 hover:file:bg-purple-600/50 file:cursor-pointer bg-white/5 rounded-xl border border-white/10 p-1" />
+          <div class="text-center text-[10px] text-gray-500">- OR -</div>
+          <input id="logoUrlInput" 
+                 type="text" 
+                 placeholder="Paste direct Logo Image URL (https://...logo.png)" 
+                 class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white font-mono placeholder-gray-500 focus:outline-none focus:border-purple-500 transition" />
+        </div>
+
+        <div class="mt-3 flex items-center justify-center p-3 rounded-xl bg-black/40 border border-white/5">
+          <img id="logoPreview" src="" alt="Logo Preview" class="max-h-16 max-w-full object-contain hidden" />
+          <span class="text-[11px] text-gray-500">Logo preview will appear here</span>
+        </div>
+      </div>
+
+      <button id="saveBrandingBtn" class="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-sm shadow-lg shadow-purple-600/30 transition cursor-pointer">
+        Save Branding & Watermark
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL 5: EXPORT SELECTED PHOTOS -->
+  <div id="exportModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="ios-glass w-full max-w-lg rounded-3xl p-6 sm:p-8 relative my-auto">
+      <button id="exportModalCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-11 h-11 rounded-2xl bg-emerald-600/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+          <i data-lucide="file-check-2" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold text-white">Export Selected Photos</h2>
+          <span id="exportCountBadge" class="text-xs font-bold text-emerald-400">0 Photos Selected</span>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider">Lightroom Search String</label>
+          <button id="copyLightroomBtn" class="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy String</span>
+          </button>
+        </div>
+        <textarea id="lightroomStringArea" 
+                  rows="4" 
+                  readonly 
+                  class="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-xs text-emerald-300 font-mono focus:outline-none select-all resize-none"></textarea>
+        <p class="text-[11px] text-gray-400 mt-1">Paste directly into Adobe Lightroom or Capture One search filter!</p>
+      </div>
+
+      <div class="pt-3 border-t border-white/10 flex flex-col gap-2.5">
+        <button id="downloadZipBtn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-indigo-600/30">
+          <i data-lucide="archive" class="w-4 h-4 text-white"></i>
+          <span>📦 Download 3-Folders Organized ZIP (Selected / Rejected / Decide)</span>
+        </button>
+
+        <button id="downloadCsvBtn" class="w-full py-2.5 rounded-xl bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white font-bold text-xs flex items-center justify-center gap-2 border border-emerald-500/40 transition cursor-pointer">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          <span>Download Selection CSV (for Print / Drive)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="app.js?v=20260918_v9"></script>
+</body>
+</html>
