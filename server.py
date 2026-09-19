@@ -18,6 +18,30 @@ DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 # On Render, use /data for persistent storage; locally use app directory
 _DATA_DIR = "/data" if os.path.isdir("/data") else DIRECTORY
 DATA_FILE = os.path.join(_DATA_DIR, "sessions.json")
+ANALYTICS_FILE = os.path.join(_DATA_DIR, "analytics.json")
+
+def load_analytics():
+    if os.path.exists(ANALYTICS_FILE):
+        try:
+            with open(ANALYTICS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"total_views": 0, "unique_ips": [], "last_visit": ""}
+
+def record_visit(ip):
+    try:
+        data = load_analytics()
+        data["total_views"] = data.get("total_views", 0) + 1
+        ips = set(data.get("unique_ips", []))
+        if ip:
+            ips.add(ip)
+        data["unique_ips"] = list(ips)
+        data["last_visit"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        with open(ANALYTICS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Analytics Error] {e}")
 
 # Google Drive API Key for reliable folder listing
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "AIzaSyBZeLlQvFy8XIUmnrErc5cP8jDpSx6DHy0")
@@ -169,6 +193,21 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urllib.parse.urlsplit(self.path)
+
+        # Record visit analytics for page requests
+        if parsed.path in ('/', '/admin', '/admin/'):
+            client_ip = self.headers.get('X-Forwarded-For', self.client_address[0]).split(',')[0].strip()
+            record_visit(client_ip)
+
+        # Admin Dashboard HTML route
+        if parsed.path in ('/admin', '/admin/'):
+            self.handle_admin_dashboard()
+            return
+
+        # Admin Stats API route
+        if parsed.path == '/api/admin/stats':
+            self.handle_admin_stats()
+            return
         
         # 1. Real-Time SSE Stream for Zero-Lag Live Co-Viewing (< 30ms)
         if parsed.path == '/api/session/stream':
@@ -769,6 +808,245 @@ How to use:
                 except Exception:
                     pass
             self.send_error(502, "Failed to proxy image")
+
+    def handle_admin_stats(self):
+        analytics = load_analytics()
+        sessions = load_sessions()
+        
+        total_photos = 0
+        total_selected = 0
+        total_rejected = 0
+        total_maybe = 0
+        session_list = []
+
+        for sid, s in sessions.items():
+            photos = s.get('photos', [])
+            decisions = s.get('decisions', {})
+            
+            sel_count = sum(1 for v in decisions.values() if v == 'select')
+            rej_count = sum(1 for v in decisions.values() if v == 'reject')
+            may_count = sum(1 for v in decisions.values() if v == 'maybe')
+
+            total_photos += len(photos)
+            total_selected += sel_count
+            total_rejected += rej_count
+            total_maybe += may_count
+
+            live_viewers = get_subscriber_count(sid)
+
+            session_list.append({
+                "id": sid,
+                "title": s.get('title', 'Untitled Event'),
+                "created_at": s.get('created_at', ''),
+                "photos_count": len(photos),
+                "selected": sel_count,
+                "rejected": rej_count,
+                "maybe": may_count,
+                "live_viewers": live_viewers,
+                "folder_url": s.get('folderUrl', '')
+            })
+
+        session_list.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        self.send_json_response(200, {
+            "success": True,
+            "total_views": analytics.get("total_views", 0),
+            "unique_visitors": len(analytics.get("unique_ips", [])),
+            "last_visit": analytics.get("last_visit", ""),
+            "total_sessions": len(sessions),
+            "total_photos": total_photos,
+            "total_selected": total_selected,
+            "total_rejected": total_rejected,
+            "total_maybe": total_maybe,
+            "sessions": session_list
+        })
+
+    def handle_admin_dashboard(self):
+        html = '''<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>selecto — Admin & Studio Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080a0f; color: #f0f2f5; }
+  </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Admin Header -->
+    <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+          <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-black text-white tracking-tight flex items-center gap-2">
+            <span>selecto Admin Dashboard</span>
+            <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE</span>
+          </h1>
+          <p class="text-xs text-gray-400">Real-Time Studio Analytics, Page Visitors & Photo Selection Stats</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition flex items-center gap-2">
+          <i data-lucide="arrow-left" class="w-4 h-4"></i>
+          <span>Back to App</span>
+        </a>
+        <button onclick="fetchStats()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition flex items-center gap-2">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Overview Cards Grid -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-5">
+        <div class="flex items-center justify-between text-gray-400 text-xs font-medium mb-2">
+          <span>Total Page Visits</span>
+          <i data-lucide="eye" class="w-4 h-4 text-blue-400"></i>
+        </div>
+        <div id="statTotalViews" class="text-2xl sm:text-3xl font-black text-white">0</div>
+        <div id="statUniqueVisitors" class="text-[11px] text-gray-400 mt-1">0 Unique Visitors</div>
+      </div>
+
+      <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-5">
+        <div class="flex items-center justify-between text-gray-400 text-xs font-medium mb-2">
+          <span>Active Sessions</span>
+          <i data-lucide="folder-kanban" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <div id="statTotalSessions" class="text-2xl sm:text-3xl font-black text-white">0</div>
+        <div id="statTotalPhotos" class="text-[11px] text-gray-400 mt-1">0 Total Photos</div>
+      </div>
+
+      <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-5">
+        <div class="flex items-center justify-between text-gray-400 text-xs font-medium mb-2">
+          <span>Selected Photos</span>
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div id="statTotalSelected" class="text-2xl sm:text-3xl font-black text-emerald-400">0</div>
+        <div class="text-[11px] text-gray-400 mt-1">Approved by Clients</div>
+      </div>
+
+      <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-5">
+        <div class="flex items-center justify-between text-gray-400 text-xs font-medium mb-2">
+          <span>Rejected / Pending</span>
+          <i data-lucide="help-circle" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span id="statTotalRejected" class="text-xl font-bold text-rose-400">0</span>
+          <span class="text-xs text-gray-400">/</span>
+          <span id="statTotalMaybe" class="text-xl font-bold text-amber-400">0</span>
+        </div>
+        <div class="text-[11px] text-gray-400 mt-1">Rejected / Decide Later</div>
+      </div>
+    </div>
+
+    <!-- Active Sessions Table -->
+    <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="layers" class="w-4 h-4 text-blue-400"></i>
+            <span>Photo Proofing Sessions</span>
+          </h2>
+          <p class="text-xs text-gray-400">Live active sessions and real-time decision status</p>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+              <th class="py-3 px-4">Event Title</th>
+              <th class="py-3 px-4">Session ID</th>
+              <th class="py-3 px-4">Photos</th>
+              <th class="py-3 px-4">Selected</th>
+              <th class="py-3 px-4">Rejected</th>
+              <th class="py-3 px-4">Decide</th>
+              <th class="py-3 px-4">Live Viewers</th>
+              <th class="py-3 px-4">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsTableBody" class="divide-y divide-white/5">
+            <tr>
+              <td colspan="8" class="py-6 text-center text-gray-400">Loading live sessions data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        const data = await res.json();
+        if (!data.success) return;
+
+        document.getElementById('statTotalViews').textContent = data.total_views;
+        document.getElementById('statUniqueVisitors').textContent = `${data.unique_visitors} Unique Visitors`;
+        document.getElementById('statTotalSessions').textContent = data.total_sessions;
+        document.getElementById('statTotalPhotos').textContent = `${data.total_photos} Total Photos`;
+        document.getElementById('statTotalSelected').textContent = data.total_selected;
+        document.getElementById('statTotalRejected').textContent = data.total_rejected;
+        document.getElementById('statTotalMaybe').textContent = data.total_maybe;
+
+        const tbody = document.getElementById('sessionsTableBody');
+        if (!data.sessions || data.sessions.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-gray-400">No active proofing sessions yet. Create one from the main app!</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = data.sessions.map(s => `
+          <tr class="hover:bg-white/5 transition">
+            <td class="py-3.5 px-4 font-bold text-white">${escapeHtml(s.title)}</td>
+            <td class="py-3.5 px-4 font-mono text-gray-400">${s.id}</td>
+            <td class="py-3.5 px-4 font-mono text-white">${s.photos_count}</td>
+            <td class="py-3.5 px-4 font-mono font-bold text-emerald-400">${s.selected}</td>
+            <td class="py-3.5 px-4 font-mono font-bold text-rose-400">${s.rejected}</td>
+            <td class="py-3.5 px-4 font-mono font-bold text-amber-400">${s.maybe}</td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${s.live_viewers > 0 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold' : 'bg-white/5 text-gray-400'}">
+                <span class="w-1.5 h-1.5 rounded-full ${s.live_viewers > 0 ? 'bg-emerald-400 animate-pulse' : 'bg-gray-500'}"></span>
+                ${s.live_viewers} Active
+              </span>
+            </td>
+            <td class="py-3.5 px-4">
+              <a href="/?session=${s.id}" target="_blank" class="px-3 py-1 rounded-lg bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 transition text-[11px] font-semibold inline-flex items-center gap-1">
+                <span>Open Portal</span>
+                <i data-lucide="external-link" class="w-3 h-3"></i>
+              </a>
+            </td>
+          </tr>
+        `).join('');
+
+        if (window.lucide) window.lucide.createIcons();
+      } catch(err) {
+        console.error("Fetch stats error:", err);
+      }
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    fetchStats();
+    setInterval(fetchStats, 5000);
+  </script>
+</body>
+</html>'''
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
 
     def send_json_response(self, code, data):
         self.send_response(code)
