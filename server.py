@@ -13,12 +13,59 @@ import socket
 import queue
 import threading
 
+# Admin Authentication Security
+ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
+ADMIN_PASS = os.environ.get("ADMIN_PASS", "selecto@admin2026")
+ADMIN_TOKENS = set()
+
+def create_admin_token():
+    token = uuid.uuid4().hex + uuid.uuid4().hex
+    ADMIN_TOKENS.add(token)
+    return token
+
+def verify_admin_token(token):
+    return token and token in ADMIN_TOKENS
+
 PORT = int(os.environ.get("PORT", 8080))
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 # On Render, use /data for persistent storage; locally use app directory
 _DATA_DIR = "/data" if os.path.isdir("/data") else DIRECTORY
 DATA_FILE = os.path.join(_DATA_DIR, "sessions.json")
 ANALYTICS_FILE = os.path.join(_DATA_DIR, "analytics.json")
+USERS_FILE = os.path.join(_DATA_DIR, "users.json")
+
+def load_users():
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_users(users):
+    try:
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[Users Storage Error] {e}")
+
+def is_user_active(user_data):
+    if not user_data:
+        return False
+    status = user_data.get('status', 'pending_payment')
+    if status != 'active':
+        return False
+    expires_at = user_data.get('expires_at', '')
+    if expires_at:
+        try:
+            exp_time = time.strptime(expires_at, "%Y-%m-%d %H:%M:%S")
+            if time.time() > time.mktime(exp_time):
+                return False
+        except Exception:
+            pass
+    return True
+
 
 def load_analytics():
     if os.path.exists(ANALYTICS_FILE):
@@ -201,7 +248,7 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
 
         # Admin Dashboard HTML route
         if parsed.path in ('/admin', '/admin/'):
-            self.handle_admin_dashboard()
+            self.handle_admin_dashboard(parsed.query)
             return
 
         # Admin Stats API route
@@ -254,6 +301,30 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
             payload = json.loads(post_body.decode('utf-8'))
         except Exception:
             payload = {}
+
+        if parsed.path == '/api/auth/google-login':
+            self.handle_google_login(payload)
+            return
+
+        if parsed.path == '/api/auth/user-profile':
+            self.handle_user_profile(payload)
+            return
+
+        if parsed.path == '/api/payment/activate':
+            self.handle_payment_activate(payload)
+            return
+
+        if parsed.path == '/api/admin/user-action':
+            self.handle_admin_user_action(payload)
+            return
+
+        if parsed.path == '/api/admin/login':
+            self.handle_admin_login(payload)
+            return
+
+        if parsed.path == '/api/admin/logout':
+            self.handle_admin_logout()
+            return
 
         if parsed.path == '/api/session/create':
             self.handle_create_session(payload)
@@ -809,7 +880,218 @@ How to use:
                     pass
             self.send_error(502, "Failed to proxy image")
 
+    def get_admin_token_from_request(self):
+        # 1. Check Cookie
+        cookie_header = self.headers.get('Cookie', '')
+        for cookie in cookie_header.split(';'):
+            cookie = cookie.strip()
+            if cookie.startswith('admin_token='):
+                return cookie.split('=', 1)[1]
+        # 2. Check Authorization header
+        auth = self.headers.get('Authorization', '')
+        if auth.startswith('Bearer '):
+            return auth.split(' ', 1)[1]
+        return None
+
+    def is_authenticated_admin(self):
+        token = self.get_admin_token_from_request()
+        return verify_admin_token(token)
+
+    # ── SAAS PHOTOGRAPHER AUTH & MONETIZATION ──
+    def handle_google_login(self, payload):
+        email = payload.get('email', '').strip().lower()
+        name = payload.get('name', '').strip() or email.split('@')[0]
+        picture = payload.get('picture', '')
+        google_id = payload.get('googleId', '')
+
+        if not email:
+            self.send_json_response(400, {"success": False, "error": "Email is required"})
+            return
+
+        users = load_users()
+        user = users.get(email)
+
+        # Single Device Token Lock: Generate new device token on login
+        new_token = uuid.uuid4().hex + uuid.uuid4().hex
+
+        if not user:
+            user = {
+                "email": email,
+                "name": name,
+                "picture": picture,
+                "googleId": google_id,
+                "status": "pending_payment", # "pending_payment" | "active" | "expired" | "blocked"
+                "plan": "none",              # "none" | "monthly" (₹499) | "yearly" (₹2999)
+                "expires_at": "",
+                "active_token": new_token,
+                "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "last_login": time.strftime("%Y-%m-%d %H:%M:%S")
+            }
+            users[email] = user
+        else:
+            user['name'] = name or user.get('name', '')
+            user['picture'] = picture or user.get('picture', '')
+            user['active_token'] = new_token
+            user['last_login'] = time.strftime("%Y-%m-%d %H:%M:%S")
+            users[email] = user
+
+        save_users(users)
+
+        active = is_user_active(user)
+        self.send_json_response(200, {
+            "success": True,
+            "token": new_token,
+            "user": {
+                "email": user['email'],
+                "name": user['name'],
+                "picture": user['picture'],
+                "status": user['status'],
+                "plan": user['plan'],
+                "expires_at": user['expires_at'],
+                "is_active": active
+            }
+        })
+
+    def handle_user_profile(self, payload):
+        email = payload.get('email', '').strip().lower()
+        token = payload.get('token', '').strip()
+
+        users = load_users()
+        user = users.get(email)
+
+        if not user:
+            self.send_json_response(404, {"success": False, "error": "User not found"})
+            return
+
+        # Single Device Lock Check: Check if active token matches
+        if token and user.get('active_token') and token != user.get('active_token'):
+            self.send_json_response(401, {
+                "success": False, 
+                "error": "Single Device Lock: You have been logged in on another device.",
+                "device_conflict": True
+            })
+            return
+
+        active = is_user_active(user)
+        self.send_json_response(200, {
+            "success": True,
+            "user": {
+                "email": user['email'],
+                "name": user['name'],
+                "picture": user['picture'],
+                "status": user['status'],
+                "plan": user['plan'],
+                "expires_at": user['expires_at'],
+                "is_active": active
+            }
+        })
+
+    def handle_payment_activate(self, payload):
+        email = payload.get('email', '').strip().lower()
+        plan = payload.get('plan', 'monthly') # "monthly" (₹499) or "yearly" (₹2999)
+        payment_id = payload.get('paymentId', 'PAY_' + uuid.uuid4().hex[:10])
+
+        users = load_users()
+        user = users.get(email)
+
+        if not user:
+            self.send_json_response(404, {"success": False, "error": "User account not found"})
+            return
+
+        # Calculate expiration date
+        now = time.time()
+        days = 365 if plan == 'yearly' else 30
+        exp_time = now + (days * 86400)
+        expires_at = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(exp_time))
+
+        user['status'] = 'active'
+        user['plan'] = plan
+        user['expires_at'] = expires_at
+        user['last_payment_id'] = payment_id
+        user['last_payment_date'] = time.strftime("%Y-%m-%d %H:%M:%S")
+        users[email] = user
+        save_users(users)
+
+        print(f"[Payment Activated] User {email} activated for {plan} plan until {expires_at}")
+        sys.stdout.flush()
+
+        self.send_json_response(200, {
+            "success": True,
+            "message": f"Account activated successfully! Plan: {plan.upper()} (Valid until {expires_at})",
+            "user": {
+                "email": user['email'],
+                "name": user['name'],
+                "status": "active",
+                "plan": plan,
+                "expires_at": expires_at,
+                "is_active": True
+            }
+        })
+
+    def handle_admin_user_action(self, payload):
+        if not self.is_authenticated_admin():
+            self.send_json_response(401, {"success": False, "error": "Unauthorized"})
+            return
+
+        email = payload.get('email', '').strip().lower()
+        action = payload.get('action', '') # "activate_monthly" | "activate_yearly" | "block" | "unblock"
+
+        users = load_users()
+        user = users.get(email)
+
+        if not user:
+            self.send_json_response(404, {"success": False, "error": "User not found"})
+            return
+
+        now = time.time()
+        if action == 'activate_monthly':
+            user['status'] = 'active'
+            user['plan'] = 'monthly'
+            user['expires_at'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now + (30 * 86400)))
+        elif action == 'activate_yearly':
+            user['status'] = 'active'
+            user['plan'] = 'yearly'
+            user['expires_at'] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(now + (365 * 86400)))
+        elif action == 'block':
+            user['status'] = 'blocked'
+        elif action == 'unblock':
+            user['status'] = 'pending_payment'
+
+        users[email] = user
+        save_users(users)
+
+        self.send_json_response(200, {"success": True, "user": user})
+
+    def handle_admin_login(self, payload):
+        username = payload.get('username', '').strip()
+        password = payload.get('password', '').strip()
+
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            token = create_admin_token()
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Set-Cookie', f'admin_token={token}; Path=/; HttpOnly; SameSite=Lax')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps({"success": True, "token": token}).encode('utf-8'))
+        else:
+            self.send_json_response(401, {"success": False, "error": "Invalid Username or Password"})
+
+    def handle_admin_logout(self):
+        token = self.get_admin_token_from_request()
+        if token in ADMIN_TOKENS:
+            ADMIN_TOKENS.remove(token)
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Set-Cookie', 'admin_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(json.dumps({"success": True}).encode('utf-8'))
+
     def handle_admin_stats(self):
+        if not self.is_authenticated_admin():
+            self.send_json_response(401, {"success": False, "error": "Unauthorized. Please login to access Admin API."})
+            return
         analytics = load_analytics()
         sessions = load_sessions()
         
@@ -848,6 +1130,24 @@ How to use:
 
         session_list.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
+        users = load_users()
+        user_list = []
+        active_users_count = 0
+
+        for u_email, u in users.items():
+            act = is_user_active(u)
+            if act: active_users_count += 1
+            user_list.append({
+                "email": u.get('email'),
+                "name": u.get('name'),
+                "status": u.get('status'),
+                "plan": u.get('plan'),
+                "expires_at": u.get('expires_at'),
+                "created_at": u.get('created_at'),
+                "last_login": u.get('last_login'),
+                "is_active": act
+            })
+
         self.send_json_response(200, {
             "success": True,
             "total_views": analytics.get("total_views", 0),
@@ -858,10 +1158,127 @@ How to use:
             "total_selected": total_selected,
             "total_rejected": total_rejected,
             "total_maybe": total_maybe,
+            "total_photographers": len(users),
+            "active_subscriptions": active_users_count,
+            "photographers": user_list,
             "sessions": session_list
         })
 
-    def handle_admin_dashboard(self):
+    def render_admin_login_page(self):
+        html = '''<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>selecto — Admin Security Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #080a0f; color: #f0f2f5; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-md bg-[#0f1117] border border-white/10 rounded-3xl p-8 shadow-2xl space-y-6">
+    
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+        <i data-lucide="shield-check" class="w-6 h-6"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-bold text-white tracking-tight">selecto Admin Login</h1>
+        <p class="text-xs text-gray-400">Authorized Personnel & Studio Admin Access</p>
+      </div>
+    </div>
+
+    <div id="loginError" class="hidden p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2">
+      <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+      <span id="loginErrorText">Invalid credentials</span>
+    </div>
+
+    <form id="adminLoginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Admin Username</label>
+        <div class="relative">
+          <input id="loginUsername" type="text" required placeholder="Username" value="admin"
+                 class="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition">
+          <i data-lucide="user" class="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Admin Password</label>
+        <div class="relative">
+          <input id="loginPassword" type="password" required placeholder="Password"
+                 class="w-full bg-black/50 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition">
+          <i data-lucide="lock" class="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+        </div>
+      </div>
+
+      <button id="loginBtn" type="submit" class="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-600/30">
+        <i data-lucide="key-round" class="w-4 h-4"></i>
+        <span>Unlock Admin Portal</span>
+      </button>
+    </form>
+
+    <div class="pt-4 border-t border-white/10 text-center text-[11px] text-gray-500">
+      Protected by selecto Admin Security · AIKALAKAR Studio
+    </div>
+  </div>
+
+  <script>
+    if (window.lucide) window.lucide.createIcons();
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      const errorText = document.getElementById('loginErrorText');
+      const btn = document.getElementById('loginBtn');
+
+      if (!u || !p) return;
+
+      btn.disabled = true;
+      btn.innerHTML = `<div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div><span>Authenticating...</span>`;
+      errorDiv.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          errorText.textContent = data.error || "Invalid Username or Password";
+          errorDiv.classList.remove('hidden');
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="key-round" class="w-4 h-4"></i><span>Unlock Admin Portal</span>`;
+          if (window.lucide) window.lucide.createIcons();
+        }
+      } catch(err) {
+        errorText.textContent = "Connection error. Please try again.";
+        errorDiv.classList.remove('hidden');
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="key-round" class="w-4 h-4"></i><span>Unlock Admin Portal</span>`;
+        if (window.lucide) window.lucide.createIcons();
+      }
+    }
+  </script>
+</body>
+</html>'''
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.end_headers()
+        self.wfile.write(html.encode('utf-8'))
+
+    def handle_admin_dashboard(self, query_string=""):
+        if not self.is_authenticated_admin():
+            self.render_admin_login_page()
+            return
         html = '''<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
@@ -900,6 +1317,10 @@ How to use:
         <button onclick="fetchStats()" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition flex items-center gap-2">
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
           <span>Refresh</span>
+        </button>
+        <button onclick="logoutAdmin()" class="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-xs font-bold text-rose-300 hover:text-white border border-rose-500/30 transition flex items-center gap-2">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span>Logout</span>
         </button>
       </div>
     </header>
@@ -944,6 +1365,43 @@ How to use:
           <span id="statTotalMaybe" class="text-xl font-bold text-amber-400">0</span>
         </div>
         <div class="text-[11px] text-gray-400 mt-1">Rejected / Decide Later</div>
+      </div>
+    </div>
+
+        <!-- Photographers & Subscriptions Management Table -->
+    <div class="bg-[#0f1117] border border-white/10 rounded-2xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <i data-lucide="users" class="w-4 h-4 text-amber-400"></i>
+            <span>Registered Photographers &amp; Subscriptions</span>
+          </h2>
+          <p class="text-xs text-gray-400">Manage photographer accounts, activation plans &amp; license locks</p>
+        </div>
+        <div class="text-xs font-bold text-amber-400 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+          <span id="statActiveSubscribers">0</span> Active Paid Members
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead>
+            <tr class="border-b border-white/10 text-gray-400 uppercase text-[10px] tracking-wider">
+              <th class="py-3 px-4">Photographer</th>
+              <th class="py-3 px-4">Email</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4">Plan</th>
+              <th class="py-3 px-4">Expires At</th>
+              <th class="py-3 px-4">Last Login</th>
+              <th class="py-3 px-4">Admin Action</th>
+            </tr>
+          </thead>
+          <tbody id="photographersTableBody" class="divide-y divide-white/5">
+            <tr>
+              <td colspan="7" class="py-6 text-center text-gray-400">Loading photographers data...</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -1031,6 +1489,35 @@ How to use:
         if (window.lucide) window.lucide.createIcons();
       } catch(err) {
         console.error("Fetch stats error:", err);
+      }
+    }
+
+        async function logoutAdmin() {
+      try {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        window.location.reload();
+      } catch(e) {
+        window.location.reload();
+      }
+    }
+
+    
+    async function adminUserAction(email, action) {
+      if (!confirm(`Perform action '${action}' for ${email}?`)) return;
+      try {
+        const res = await fetch('/api/admin/user-action', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, action })
+        });
+        const data = await res.json();
+        if (data.success) {
+          fetchStats();
+        } else {
+          alert("Error: " + (data.error || "Action failed"));
+        }
+      } catch(e) {
+        alert("Action error: " + e.message);
       }
     }
 
