@@ -162,6 +162,11 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html')
+        self.end_headers()
+
     def do_GET(self):
         parsed = urllib.parse.urlsplit(self.path)
         
@@ -369,7 +374,8 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
             zf.writestr("Lightroom_Filter_Search.txt", lr_query or "No selections yet.")
 
             # 5. Summary
-            summary = f"""PhotoProof Studio - Selection Summary
+            summary = f"""selecto - Selection Summary
+Tagline: Photo Selection, Simplified.
 Event: {session.get('title', 'Event')}
 Total Photos: {len(photos)}
 Selected (Green): {len(selected)}
@@ -385,7 +391,7 @@ How to use:
         zip_data = zip_buffer.getvalue()
         self.send_response(200)
         self.send_header('Content-Type', 'application/zip')
-        self.send_header('Content-Disposition', f'attachment; filename="PhotoProof_{title}_Organized.zip"')
+        self.send_header('Content-Disposition', f'attachment; filename="selecto_{title}_Organized.zip"')
         self.send_header('Content-Length', str(len(zip_data)))
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
@@ -669,7 +675,7 @@ How to use:
                 api_url = f"https://www.googleapis.com/drive/v3/files?{params_q}"
 
                 req = urllib.request.Request(api_url, headers={
-                    'User-Agent': 'PhotoProof/1.0'
+                    'User-Agent': 'selecto/1.0'
                 })
                 with urllib.request.urlopen(req, timeout=15) as resp:
                     data = json.loads(resp.read().decode('utf-8'))
@@ -688,12 +694,12 @@ How to use:
                         photos.append({
                             "id": fid,
                             "title": fname or f"Photo_{fid[:8]}.jpg",
-                            "url": f"https://lh3.googleusercontent.com/d/{fid}=w1920",
-                            "preview": f"https://lh3.googleusercontent.com/d/{fid}=w600",
-                            "thumb": f"https://lh3.googleusercontent.com/d/{fid}=w300",
-                            "fullUrl": f"https://lh3.googleusercontent.com/d/{fid}=w2560",
+                            "url": f"https://drive.google.com/thumbnail?id={fid}&sz=w1920",
+                            "preview": f"https://drive.google.com/thumbnail?id={fid}&sz=w600",
+                            "thumb": f"https://drive.google.com/thumbnail?id={fid}&sz=w300",
+                            "fullUrl": f"https://drive.google.com/thumbnail?id={fid}&sz=w2560",
                             "downloadUrl": f"https://drive.google.com/uc?export=download&id={fid}",
-                            "fallbackUrl": f"https://drive.google.com/thumbnail?id={fid}&sz=w1920",
+                            "fallbackUrl": f"https://lh3.googleusercontent.com/d/{fid}=w1920",
                             "source": "drive"
                         })
 
@@ -779,7 +785,7 @@ def run():
     os.chdir(DIRECTORY)
     with ThreadedHTTPServer(("0.0.0.0", PORT), PhotoProofingHandler) as httpd:
         print("=" * 75)
-        print("  📸 PhotoProof Studio - Luxury iOS 18 Edition")
+        print("  📸 selecto - Photo Selection, Simplified.")
         print("  ⚡ Sub-30ms Server-Sent Events (SSE) Realtime Co-Viewing Stream Active")
         print(f"  💻 Local Mac:           http://localhost:{PORT}")
         print(f"  📱 Mobile / Client URL: http://{LOCAL_IP}:{PORT}")

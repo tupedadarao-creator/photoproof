@@ -2,8 +2,9 @@
 <html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PhotoProof Studio - Luxury Live Selection & Client Proofing</title>
+  <title>selecto - Photo Selection, Simplified.</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -28,8 +29,13 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#050609">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
   <!-- Custom iOS 18 Luxury Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260918_v9">
+  <link rel="stylesheet" href="styles.css?v=20260919_v10">
   
   <!-- Bulletproof Modal Open/Close Global Functions -->
   <script>
@@ -115,7 +121,157 @@
     };
   </script>
 </head>
-<body class="bg-[#050609] text-gray-100 flex flex-col h-screen w-screen overflow-hidden select-none">
+<body class="bg-[#080a0f] text-gray-100 flex flex-col h-screen w-screen overflow-hidden select-none">
+
+  <!-- ── AIKALAKAR SUITE LANDING PAGE ── -->
+  <div id="aikalakarSuiteLanding" class="fixed inset-0 z-[100] flex flex-col bg-[#080a0f] overflow-y-auto">
+    <!-- Navbar -->
+    <nav class="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between border-b border-white/[0.07]">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-[#0f1117] border border-white/[0.08]">
+          <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
+            <i data-lucide="aperture" class="w-4 h-4 text-blue-400"></i>
+          </div>
+        </div>
+        <div>
+          <span class="text-lg font-black tracking-tight text-white">selecto <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.07] text-gray-400 font-semibold border border-white/[0.08] ml-1">AI SUITE</span></span>
+          <p class="text-[10px] text-gray-400 font-medium">Photo Selection, Simplified.</p>
+        </div>
+      </div>
+      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-gray-100 transition flex items-center gap-1.5 cursor-pointer">
+        <span>Open selecto</span>
+        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+      </button>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="max-w-4xl mx-auto px-6 pt-8 pb-4 text-center">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-semibold mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+        <span>LAUNCHED — Free for photographers</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-3">
+        Professional tools for<br/>modern photographers
+      </h1>
+      <p class="text-xs sm:text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">
+        From instant live photo proofing to AI video generation & photobook printing — selecto automates your entire photography studio workflow.
+      </p>
+    </div>
+
+    <!-- 5 AIKALAKAR TOOLS GRID -->
+    <div class="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      
+      <!-- TOOL 1: selecto (LIVE NOW) -->
+      <div class="rounded-2xl bg-[#0d1018] border border-blue-500/25 p-5 flex flex-col justify-between hover:border-blue-500/40 transition-all duration-200">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <i data-lucide="camera" class="w-5 h-5 text-blue-400"></i>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              LAUNCHED
+            </span>
+          </div>
+          <h3 class="text-base font-bold text-white mb-1">selecto</h3>
+          <p class="text-[11px] text-blue-400 font-medium mb-2">Photo Selection, Simplified.</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            1-Click Google Drive Sync, zero-lag co-viewing on phone calls, automatic watermark downloads & 3-folder Lightroom export.
+          </p>
+        </div>
+        <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden'); window.openDriveModal();" class="mt-5 w-full py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Launch selecto Free</span>
+        </button>
+      </div>
+
+      <!-- TOOL 2: AIKA V1 - AI Video Generator -->
+      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+              <i data-lucide="video" class="w-5 h-5 text-gray-400"></i>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.08]">Coming Soon</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mb-1">AIKA V1</h3>
+          <p class="text-xs text-purple-300 font-semibold mb-2">Complete AI Video Generation Suite</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Generate cinematic wedding teasers, story reels, and highlights automatically from photo assets using next-gen AI video models.
+          </p>
+        </div>
+        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
+          In Private Beta
+        </div>
+      </div>
+
+      <!-- TOOL 3: AIKA Lightroom AI Post-Processing -->
+      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+              <i data-lucide="sliders" class="w-5 h-5 text-gray-400"></i>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">80% Ready</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Lightroom AI</h3>
+          <p class="text-xs text-blue-300 font-semibold mb-2">Smart AI Photo Editing & Retouching</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Lightroom-style AI batch editor. Automatic skin retouching, color grading, tone matching and culling for thousands of event photos.
+          </p>
+        </div>
+        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
+          Development Stage 80%
+        </div>
+      </div>
+
+      <!-- TOOL 4: AIKA Smart Crop 16:9 to 9:16 -->
+      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+              <i data-lucide="crop" class="w-5 h-5 text-gray-400"></i>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">80% Ready</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Smart Crop</h3>
+          <p class="text-xs text-pink-300 font-semibold mb-2">16:9 to 9:16 1-Click Reel Converter</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Smart AI subject tracking. Convert horizontal 16:9 landscape videos into perfectly framed 9:16 vertical Reels & Shorts in 1 click.
+          </p>
+        </div>
+        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
+          Development Stage 90%
+        </div>
+      </div>
+
+      <!-- TOOL 5: AIKA Photobook -->
+      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+              <i data-lucide="book-open" class="w-5 h-5 text-gray-400"></i>
+            </div>
+            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.08]">Coming Soon</span>
+          </div>
+          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Photobook</h3>
+          <p class="text-xs text-emerald-300 font-semibold mb-2">Creative Photo Album & Printing Suite</p>
+          <p class="text-xs text-gray-400 leading-relaxed">
+            Auto-generate creative photo album layouts, print-ready PDFs & binding specifications for luxury wedding photobooks.
+          </p>
+        </div>
+        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
+          Architecture Phase
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="mt-auto border-t border-white/10 py-6 text-center text-xs text-gray-500">
+      © 2026 selecto — Photo Selection, Simplified. All rights reserved.
+    </div>
+  </div>
 
   <!-- Ambient Luxury Studio Glow -->
   <div class="ambient-glow"></div>
@@ -133,13 +289,13 @@
     
     <!-- Left: Studio Brand & Live Presence Indicator -->
     <div class="flex items-center gap-2.5 pr-2 border-r border-white/10">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-        <i data-lucide="camera" class="w-4 h-4 text-white"></i>
+      <div class="w-8 h-8 rounded-xl bg-[#0f1117] border border-white/[0.09] flex items-center justify-center">
+        <i data-lucide="aperture" class="w-4 h-4 text-blue-400"></i>
       </div>
       <div class="hidden sm:block">
         <div class="flex items-center gap-1.5">
-          <span class="text-xs font-extrabold tracking-tight text-white">PhotoProof</span>
-          <span class="text-[9px] uppercase font-black tracking-widest px-1.5 py-0.2 rounded-md bg-indigo-500/25 text-indigo-300">PRO</span>
+          <span class="text-xs font-extrabold tracking-tight text-white">selecto</span>
+          <span class="text-[9px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-md bg-white/[0.07] text-gray-400 border border-white/[0.08]">PRO</span>
         </div>
         <p id="sessionTitleDisplay" class="text-[10px] text-gray-400 font-medium truncate max-w-[130px]">Wedding Selection</p>
       </div>
@@ -179,8 +335,14 @@
 
     <!-- Right: Quick Studio Action Buttons -->
     <div class="flex items-center gap-1.5 pl-2 border-l border-white/10">
+      <!-- 🌟 AIKALAKAR SUITE PORTAL BUTTON 🌟 -->
+      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.remove('hidden')" title="AIKALAKAR AI Suite Tools" class="bg-white/[0.07] hover:bg-white/[0.12] text-white font-semibold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 border border-white/[0.08] transition cursor-pointer">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>AIKALAKAR Suite</span>
+      </button>
+
       <!-- 📁 ONE SINGLE GOOGLE DRIVE SYNC BUTTON 📁 -->
-      <button id="openImportBtn" onclick="window.openDriveModal()" title="Google Drive Link & 3-Folder Sync" class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-indigo-600/30 transition transform active:scale-95 cursor-pointer ring-1 ring-white/20">
+      <button id="openImportBtn" onclick="window.openDriveModal()" title="Google Drive Link & 3-Folder Sync" class="bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 border border-blue-500/25 transition cursor-pointer">
         <i data-lucide="cloud-cog" class="w-4 h-4 text-white"></i>
         <span>📁 Google Drive Sync</span>
       </button>
@@ -264,7 +426,7 @@
     <button id="downloadBtn" 
             aria-label="Download Photo with Watermark" 
             title="Download Watermarked Photo" 
-            class="hidden sm:flex nav-btn player-chrome absolute right-6 sm:right-10 bottom-36 sm:bottom-40 z-30 px-4 py-2.5 rounded-2xl items-center gap-2 text-xs sm:text-sm font-bold text-white cursor-pointer bg-gradient-to-r from-indigo-600/80 to-purple-600/80 hover:from-indigo-600 hover:to-purple-600 border border-white/20 shadow-xl">
+            class="hidden sm:flex nav-btn player-chrome absolute right-6 sm:right-10 bottom-36 sm:bottom-40 z-30 px-4 py-2.5 rounded-2xl items-center gap-2 text-xs sm:text-sm font-semibold text-white cursor-pointer shadow-lg">
       <i data-lucide="download" class="w-4 h-4 text-white"></i>
       <span>Download</span>
     </button>
@@ -341,98 +503,97 @@
 
   <!-- MODAL 1: IMPORT GOOGLE DRIVE FOLDER -->
   <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-    <div class="ios-glass w-full max-w-xl rounded-3xl p-6 sm:p-8 relative my-auto">
+    <div class="ios-glass w-full max-w-xl rounded-3xl p-6 sm:p-8 relative my-auto border border-white/10 shadow-2xl">
       <button id="importCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
 
-      <div class="flex items-center space-x-3 mb-4">
-        <div class="w-11 h-11 rounded-2xl bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-          <i data-lucide="folder-search" class="w-6 h-6"></i>
+      <div class="flex items-center space-x-3.5 mb-6">
+        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+          <i data-lucide="folder-search" class="w-5 h-5"></i>
         </div>
         <div>
-          <h2 class="text-lg font-bold text-white">Import Google Drive Event</h2>
-          <p class="text-xs text-gray-400">Load 50 to 5000+ photos automatically from a single folder link</p>
+          <h2 class="text-base font-bold text-white tracking-tight">Import Google Drive Event</h2>
+          <p class="text-xs text-gray-400">Sync photo assets directly from your Google Drive storage</p>
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Event / Album Title</label>
-        <input id="albumTitleInput" 
-               type="text" 
-               placeholder="e.g. Rohit & Priya Wedding Proofing" 
-               class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition" />
-      </div>
-
-      <!-- 🌟 INPUT & OUTPUT GOOGLE DRIVE LINKS 🌟 -->
-      <div class="space-y-3 mb-4">
+      <div class="space-y-4 mb-6">
         <div>
-          <label class="block text-xs font-bold text-indigo-400 mb-1 flex items-center gap-1.5 uppercase tracking-wider">
-            <i data-lucide="folder-input" class="w-4 h-4"></i>
-            <span>1. Input Drive Link (क्लायंटला दाखवायचे मूळ फोटो)</span>
+          <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">Event / Album Title</label>
+          <input id="albumTitleInput" 
+                 type="text" 
+                 placeholder="e.g. Rohit & Priya Wedding Proofing" 
+                 class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="folder-input" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span>1. Input Drive Link (Proofing Photos)</span>
           </label>
           <input id="linkInput" 
                  type="text" 
-                 placeholder="Google Drive Proofing Folder Link पेस्ट करा..." 
-                 class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition" />
+                 placeholder="Paste Google Drive Proofing Folder Link..." 
+                 class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-emerald-400 mb-1 flex items-center gap-1.5 uppercase tracking-wider">
-            <i data-lucide="folder-output" class="w-4 h-4"></i>
-            <span>2. Output Drive Link (निवडलेले फोटो सेव्ह करण्यासाठी फोल्डर)</span>
+          <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <i data-lucide="folder-output" class="w-3.5 h-3.5 text-gray-400"></i>
+            <span>2. Output Drive Link (Selected Destination - Optional)</span>
           </label>
           <input id="importDriveBridgeUrlInput" 
                  type="text" 
-                 placeholder="Google Drive Selected Photos Destination Link पेस्ट करा..." 
-                 class="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-emerald-300 font-mono placeholder-gray-500 focus:outline-none focus:border-emerald-500 transition" />
+                 placeholder="Paste Destination Folder Link..." 
+                 class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
         </div>
 
         <!-- 🌟 PHOTOGRAPHER LOGO & WATERMARK SETTINGS 🌟 -->
-        <div class="bg-gradient-to-br from-purple-950/30 to-indigo-950/30 border border-purple-500/25 rounded-2xl p-3.5 mt-3">
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase tracking-wider">
-              <i data-lucide="stamp" class="w-4 h-4 text-purple-400"></i>
-              <span>3. Studio Logo / Watermark (डाऊनलोड वॉटरमार्क)</span>
+        <div class="bg-[#121318] border border-white/10 rounded-2xl p-4">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-[11px] font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
+              <i data-lucide="stamp" class="w-3.5 h-3.5 text-gray-400"></i>
+              <span>3. Studio Watermark (Brand Overlay)</span>
             </label>
-            <span class="text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/30">Auto Watermark</span>
+            <span class="text-[10px] text-gray-400 font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10">Auto Overlay</span>
           </div>
-          <p class="text-[11px] text-gray-300 mb-2">
-            क्लायंटने गॅलरीमधून कोणताही फोटो डाऊनलोड केल्यास उजव्या कोपऱ्यात तुमचा ब्रँड/लोगो आपोआप जोडला जाईल.
+          <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">
+            Automatically embed your brand mark on client preview downloads.
           </p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <input id="importPhotographerName" 
                      type="text" 
                      placeholder="Studio Name (e.g. Royal Photography)" 
-                     class="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition" />
+                     class="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
             </div>
             <div>
               <input id="importLogoFileInput" 
                      type="file" 
                      accept="image/*" 
-                     class="w-full text-[11px] text-gray-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-purple-600 file:text-white hover:file:bg-purple-500 cursor-pointer bg-black/50 rounded-xl border border-white/10 p-1" />
+                     class="w-full text-[11px] text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer bg-black/40 rounded-xl border border-white/10 p-1" />
             </div>
           </div>
-          <div id="importLogoPreviewContainer" class="hidden mt-2 flex items-center gap-3 bg-black/60 p-2 rounded-xl border border-purple-500/30">
-            <img id="importLogoPreview" src="" alt="Logo Preview" class="h-7 max-w-[120px] object-contain rounded bg-white/10 p-1" />
-            <span class="text-[11px] text-emerald-400 font-bold">✓ लोगो वॉटरमार्क तयार आहे!</span>
+          <div id="importLogoPreviewContainer" class="hidden mt-3 flex items-center gap-3 bg-black/40 p-2.5 rounded-xl border border-white/10">
+            <img id="importLogoPreview" src="" alt="Logo Preview" class="h-6 max-w-[100px] object-contain rounded bg-white/10 p-1" />
+            <span class="text-[11px] text-gray-300 font-medium">✓ Watermark Ready</span>
           </div>
         </div>
 
-        <div class="flex items-center gap-2 text-[11px] text-gray-300 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
-          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 flex-shrink-0"></i>
-          <span>टीप: फोल्डर शेअरिंग <strong>"Anyone with the link can view"</strong> असणे आवश्यक आहे.</span>
+        <div class="flex items-center gap-2 text-[11px] text-gray-400 bg-white/5 p-3 rounded-xl border border-white/10">
+          <i data-lucide="shield-check" class="w-4 h-4 text-gray-300 flex-shrink-0"></i>
+          <span>Ensure Google Drive link sharing is set to <strong>"Anyone with the link can view"</strong>.</span>
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row items-center gap-2.5 pt-1">
-        <button id="processLinksBtn" type="button" onclick="window.startDriveSync()" class="w-full sm:flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-sm shadow-xl shadow-indigo-600/30 transition transform active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>⚡ Start Proofing & Sync Photos (सर्व फोटो लोड करा)</span>
+      <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
+        <button id="processLinksBtn" type="button" onclick="window.startDriveSync()" class="w-full sm:flex-1 py-3 px-5 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs shadow-xl transition transform active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
+          <i data-lucide="sparkles" class="w-4 h-4 text-black"></i>
+          <span>Start Proofing Session</span>
         </button>
-        <button id="loadDemoBtn" class="w-full sm:w-auto py-3 px-4 rounded-xl ios-pill text-gray-300 hover:text-white text-xs font-medium transition flex items-center justify-center gap-1.5 cursor-pointer">
-          <i data-lucide="image" class="w-4 h-4 text-emerald-400"></i>
+        <button id="loadDemoBtn" class="w-full sm:w-auto py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <i data-lucide="image" class="w-3.5 h-3.5 text-gray-400"></i>
           <span>Sample Demo</span>
         </button>
       </div>
@@ -654,7 +815,7 @@
       </div>
 
       <div class="pt-3 border-t border-white/10 flex flex-col gap-2.5">
-        <button id="downloadZipBtn" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer shadow-lg shadow-indigo-600/30">
+        <button id="downloadZipBtn" class="w-full py-3.5 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition cursor-pointer">
           <i data-lucide="archive" class="w-4 h-4 text-white"></i>
           <span>📦 Download 3-Folders Organized ZIP (Selected / Rejected / Decide)</span>
         </button>
