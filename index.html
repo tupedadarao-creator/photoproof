@@ -258,160 +258,180 @@
       });
     }
 
+    window.connectGoogleDriveOAuth = function() {
+      var email = localStorage.getItem('photographer_email');
+      if (!email) {
+        alert("कृपया प्रथम Google Account ने Sign-In करा!");
+        window.openSubscriptionModal();
+        return;
+      }
+      var w = 500, h = 600;
+      var left = (screen.width/2)-(w/2), top = (screen.height/2)-(h/2);
+      var url = '/api/auth/google-drive/connect?email=' + encodeURIComponent(email);
+      window.open(url, 'GoogleDriveOAuth', 'width='+w+',height='+h+',top='+top+',left='+left);
+    };
+
+    window.checkDriveOAuthStatus = function() {
+      var email = localStorage.getItem('photographer_email');
+      var badge = document.getElementById('driveStatusBadge');
+      var btn = document.getElementById('connectDriveOAuthBtn');
+      if (!email) return;
+
+      fetch('/api/auth/google-drive/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.connected) {
+          if (badge) {
+            badge.textContent = '🟢 Google Drive Connected';
+            badge.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+          }
+          if (btn) {
+            btn.innerHTML = '<span>✓ Google Drive Connected (Auto-Sync Active)</span>';
+            btn.className = 'w-full py-3 px-4 rounded-xl bg-emerald-500/20 text-emerald-300 font-extrabold text-xs border border-emerald-500/40 cursor-default';
+          }
+        }
+      });
+    };
+
+    window.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'GOOGLE_DRIVE_CONNECTED') {
+        alert("🎉 1-Click Google Drive Connection Successful!\nSelecto is now linked to your Google Drive.");
+        checkDriveOAuthStatus();
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
       checkCurrentPhotographerStatus();
+      checkDriveOAuthStatus();
     });
   </script>
 </head>
 <body class="bg-[#080a0f] text-gray-100 flex flex-col h-screen w-screen overflow-hidden select-none">
 
-  <!-- ── AIKALAKAR SUITE LANDING PAGE ── -->
+  <!-- ── SELECTO CLEAN LANDING PAGE ── -->
   <div id="aikalakarSuiteLanding" class="fixed inset-0 z-[100] flex flex-col bg-[#080a0f] overflow-y-auto">
+    
     <!-- Navbar -->
-    <nav class="w-full max-w-7xl mx-auto px-6 py-4 flex items-center justify-between border-b border-white/[0.07]">
+    <nav class="w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-2xl bg-[#0f1117] border border-white/[0.08]">
-          <div class="w-full h-full bg-black rounded-[14px] flex items-center justify-center">
-            <i data-lucide="aperture" class="w-4 h-4 text-blue-400"></i>
-          </div>
+        <div class="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+          <i data-lucide="aperture" class="w-4 h-4 text-blue-400"></i>
         </div>
-        <div>
-          <span class="text-lg font-black tracking-tight text-white">selecto <span class="text-[10px] px-1.5 py-0.5 rounded bg-white/[0.07] text-gray-400 font-semibold border border-white/[0.08] ml-1">AI SUITE</span></span>
-          <p class="text-[10px] text-gray-400 font-medium">Photo Selection, Simplified.</p>
-        </div>
+        <span class="text-base font-black tracking-tight text-white">selecto</span>
       </div>
-      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden')" class="px-4 py-2 rounded-xl bg-white text-black text-xs font-bold hover:bg-gray-100 transition flex items-center gap-1.5 cursor-pointer">
-        <span>Open selecto</span>
-        <i data-lucide="arrow-right" class="w-4 h-4"></i>
-      </button>
+      <a href="https://wa.me/917385499199" target="_blank" class="text-xs text-gray-400 hover:text-white transition flex items-center gap-1.5 cursor-pointer">
+        <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+        <span>Support</span>
+      </a>
     </nav>
 
-    <!-- Hero Section -->
-    <div class="max-w-4xl mx-auto px-6 pt-8 pb-4 text-center">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-semibold mb-5">
-        <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
-        <span>LAUNCHED — Free for photographers</span>
+    <!-- Hero -->
+    <div class="flex-1 flex flex-col items-center justify-start px-6 py-12 text-center max-w-4xl mx-auto w-full">
+
+      <!-- Live Badge -->
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-semibold mb-6">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>LIVE — Trusted by Professional Photographers</span>
       </div>
-      <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight mb-3">
-        Professional tools for<br/>modern photographers
+
+      <!-- Main Heading -->
+      <h1 class="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight mb-6">
+        Photo Selection,<br/>
+        <span class="text-blue-400">Simplified.</span>
       </h1>
-      <p class="text-xs sm:text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">
-        From instant live photo proofing to AI video generation & photobook printing — selecto automates your entire photography studio workflow.
+      <p class="text-base text-gray-400 max-w-2xl mx-auto leading-relaxed mb-10">
+        Share photos with your clients, let them select directly on their mobile devices, and have their selections automatically sorted into your Google Drive folders. No extra apps required.
       </p>
-    </div>
 
-    <!-- 5 AIKALAKAR TOOLS GRID -->
-    <div class="max-w-6xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-      
-      <!-- TOOL 1: selecto (LIVE NOW) -->
-      <div class="rounded-2xl bg-[#0d1018] border border-blue-500/25 p-5 flex flex-col justify-between hover:border-blue-500/40 transition-all duration-200">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <i data-lucide="camera" class="w-5 h-5 text-blue-400"></i>
-            </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              LAUNCHED
-            </span>
-          </div>
-          <h3 class="text-base font-bold text-white mb-1">selecto</h3>
-          <p class="text-[11px] text-blue-400 font-medium mb-2">Photo Selection, Simplified.</p>
-          <p class="text-xs text-gray-400 leading-relaxed">
-            1-Click Google Drive Sync, zero-lag co-viewing on phone calls, automatic watermark downloads & 3-folder Lightroom export.
-          </p>
-        </div>
-        <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden'); window.openDriveModal();" class="mt-5 w-full py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>Launch selecto Free</span>
-        </button>
-      </div>
+      <!-- BIG LAUNCH BUTTON -->
+      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden'); window.openDriveModal();"
+              class="w-full max-w-md py-4 px-8 rounded-2xl bg-white hover:bg-gray-200 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-3 transition transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-2xl shadow-white/10 mb-4">
+        <i data-lucide="sparkles" class="w-5 h-5 text-black"></i>
+        <span>Launch selecto (Free)</span>
+      </button>
+      <p class="text-[11px] text-gray-500 mb-16">No downloads · Works in browser · 100% Free</p>
 
-      <!-- TOOL 2: AIKA V1 - AI Video Generator -->
-      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-              <i data-lucide="video" class="w-5 h-5 text-gray-400"></i>
-            </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.08]">Coming Soon</span>
+      <!-- How it works (Quick Guide) -->
+      <div class="w-full text-left mb-16">
+        <h2 class="text-2xl font-bold text-white mb-8 text-center">How it works</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-[#0d1018] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden group hover:border-blue-500/30 transition">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500/0 via-blue-500/50 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-black text-lg mb-4">1</div>
+            <h3 class="text-sm font-bold text-white mb-2">Connect Google Drive</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Click 1-Click connect to link your Google Drive. Paste your folder link and all your photos load instantly.</p>
           </div>
-          <h3 class="text-lg font-extrabold text-white mb-1">AIKA V1</h3>
-          <p class="text-xs text-purple-300 font-semibold mb-2">Complete AI Video Generation Suite</p>
-          <p class="text-xs text-gray-400 leading-relaxed">
-            Generate cinematic wedding teasers, story reels, and highlights automatically from photo assets using next-gen AI video models.
-          </p>
-        </div>
-        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
-          In Private Beta
+          <div class="bg-[#0d1018] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden group hover:border-emerald-500/30 transition">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500/0 via-emerald-500/50 to-emerald-500/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black text-lg mb-4">2</div>
+            <h3 class="text-sm font-bold text-white mb-2">Share Link with Client</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">Send the auto-generated link to your client via WhatsApp. They can view and select photos on any device.</p>
+          </div>
+          <div class="bg-[#0d1018] border border-white/[0.05] p-6 rounded-2xl relative overflow-hidden group hover:border-amber-500/30 transition">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500/0 via-amber-500/50 to-amber-500/0 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-black text-lg mb-4">3</div>
+            <h3 class="text-sm font-bold text-white mb-2">Auto-Sort in Drive</h3>
+            <p class="text-xs text-gray-400 leading-relaxed">As the client selects photos, they are automatically sorted into 'Selected', 'Rejected' and 'Decide' folders.</p>
+          </div>
         </div>
       </div>
 
-      <!-- TOOL 3: AIKA Lightroom AI Post-Processing -->
-      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-              <i data-lucide="sliders" class="w-5 h-5 text-gray-400"></i>
+      <!-- Features List (Not Cards) -->
+      <div class="w-full text-left bg-gradient-to-b from-[#0d1018] to-transparent border border-white/[0.05] rounded-3xl p-8 mb-12">
+        <h2 class="text-xl font-bold text-white mb-6 text-center">Why photographers love selecto</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="flex items-start gap-4">
+            <div class="mt-1 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+              <i data-lucide="zap" class="w-4 h-4 text-rose-400"></i>
             </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">80% Ready</span>
+            <div>
+              <h4 class="text-sm font-bold text-gray-200">Real-time Live Co-Viewing</h4>
+              <p class="text-[11px] text-gray-400 mt-1">Experience sub-30ms sync speed. Watch your client make selections live while you are on a phone call with them.</p>
+            </div>
           </div>
-          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Lightroom AI</h3>
-          <p class="text-xs text-blue-300 font-semibold mb-2">Smart AI Photo Editing & Retouching</p>
-          <p class="text-xs text-gray-400 leading-relaxed">
-            Lightroom-style AI batch editor. Automatic skin retouching, color grading, tone matching and culling for thousands of event photos.
-          </p>
-        </div>
-        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
-          Development Stage 80%
-        </div>
-      </div>
+          
+          <div class="flex items-start gap-4">
+            <div class="mt-1 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+              <i data-lucide="stamp" class="w-4 h-4 text-purple-400"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-gray-200">Automatic Studio Watermarking</h4>
+              <p class="text-[11px] text-gray-400 mt-1">When clients download a preview photo, your studio logo watermark is automatically applied instantly.</p>
+            </div>
+          </div>
 
-      <!-- TOOL 4: AIKA Smart Crop 16:9 to 9:16 -->
-      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-              <i data-lucide="crop" class="w-5 h-5 text-gray-400"></i>
+          <div class="flex items-start gap-4">
+            <div class="mt-1 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+              <i data-lucide="sliders" class="w-4 h-4 text-teal-400"></i>
             </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">80% Ready</span>
+            <div>
+              <h4 class="text-sm font-bold text-gray-200">1-Click Lightroom Export</h4>
+              <p class="text-[11px] text-gray-400 mt-1">Get a copy-paste ready search string of all selected photos to instantly filter them in Adobe Lightroom.</p>
+            </div>
           </div>
-          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Smart Crop</h3>
-          <p class="text-xs text-pink-300 font-semibold mb-2">16:9 to 9:16 1-Click Reel Converter</p>
-          <p class="text-xs text-gray-400 leading-relaxed">
-            Smart AI subject tracking. Convert horizontal 16:9 landscape videos into perfectly framed 9:16 vertical Reels & Shorts in 1 click.
-          </p>
-        </div>
-        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
-          Development Stage 90%
-        </div>
-      </div>
 
-      <!-- TOOL 5: AIKA Photobook -->
-      <div class="rounded-2xl bg-[#0f1117] border border-white/[0.07] p-5 flex flex-col justify-between hover:border-white/[0.12] transition-all duration-200">
-        <div>
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-10 h-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
-              <i data-lucide="book-open" class="w-5 h-5 text-gray-400"></i>
+          <div class="flex items-start gap-4">
+            <div class="mt-1 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
+              <i data-lucide="cloud" class="w-4 h-4 text-blue-400"></i>
             </div>
-            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.08]">Coming Soon</span>
+            <div>
+              <h4 class="text-sm font-bold text-gray-200">No Storage Limits</h4>
+              <p class="text-[11px] text-gray-400 mt-1">Since we sync directly with your own Google Drive, you have unlimited storage based on your own Google account.</p>
+            </div>
           </div>
-          <h3 class="text-lg font-extrabold text-white mb-1">AIKA Photobook</h3>
-          <p class="text-xs text-emerald-300 font-semibold mb-2">Creative Photo Album & Printing Suite</p>
-          <p class="text-xs text-gray-400 leading-relaxed">
-            Auto-generate creative photo album layouts, print-ready PDFs & binding specifications for luxury wedding photobooks.
-          </p>
-        </div>
-        <div class="mt-6 py-2.5 px-4 rounded-xl bg-white/5 text-center text-xs text-gray-400 font-medium border border-white/5">
-          Architecture Phase
         </div>
       </div>
 
     </div>
 
     <!-- Footer -->
-    <div class="mt-auto border-t border-white/10 py-6 text-center text-xs text-gray-500">
-      © 2026 selecto — Photo Selection, Simplified. All rights reserved.
+    <div class="border-t border-white/[0.06] py-5 text-center text-[11px] text-gray-600">
+      © 2026 selecto by aikalakar · Photo Selection, Simplified.
     </div>
   </div>
 
@@ -851,29 +871,41 @@
         </div>
       </div>
 
-      <!-- Google Apps Script Bridge Setup -->
-      <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 mb-4 text-xs text-gray-300 space-y-2">
-        <p class="font-bold text-emerald-400 flex items-center gap-1.5">
-          <i data-lucide="sparkles" class="w-4 h-4"></i>
-          <span>How Automatic Drive Folder Sync Works:</span>
+      <!-- 🌟 1-CLICK GOOGLE DRIVE OAUTH CONNECT BUTTON 🌟 -->
+      <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 mb-4 text-center space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="cloud" class="w-4 h-4"></i>
+            <span>Google Drive Auto-Sync</span>
+          </span>
+          <span id="driveStatusBadge" class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-white/10 text-gray-300">
+            ⚪ Not Connected
+          </span>
+        </div>
+        <p class="text-[11px] text-gray-300 leading-relaxed text-left">
+          Connect your Google Drive with 1-Click. Subfolders (<code>Selected_Photos</code>) will be created automatically without any Apps Script setup!
         </p>
-        <p class="text-[11px] text-gray-400 leading-relaxed">
-          Google Drive requires user authorization to create folders and move files. With our free <strong>Google Apps Script Bridge</strong>, the 3 subfolders are created inside your event folder on Google Drive and sorted in real-time as you rate photos!
-        </p>
+        <button id="connectDriveOAuthBtn" onclick="window.connectGoogleDriveOAuth()" class="w-full py-3 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20">
+          <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="currentColor" d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+          <span>🔗 1-Click Connect Google Drive</span>
+        </button>
       </div>
 
-      <!-- Bridge URL Input -->
-      <div class="mb-4">
-        <label class="block text-xs font-semibold text-gray-300 uppercase tracking-wider mb-1.5">Google Apps Script Web App URL (Optional)</label>
+      <!-- Google Apps Script Bridge Setup (Optional Fallback) -->
+      <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 mb-4 text-xs text-gray-300 space-y-2">
+        <p class="font-bold text-gray-400 flex items-center gap-1.5">
+          <i data-lucide="code" class="w-4 h-4"></i>
+          <span>Alternative: Google Apps Script URL (Optional)</span>
+        </p>
         <input id="driveBridgeUrlInput" 
                type="text" 
                placeholder="https://script.google.com/macros/s/.../exec" 
-               class="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 transition" />
+               class="w-full bg-black/50 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300 font-mono focus:outline-none focus:border-emerald-500 transition mt-1" />
       </div>
 
       <div class="flex gap-2">
-        <button id="saveDriveBridgeBtn" class="flex-1 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-emerald-600/30">
-          Save & Link Drive Bridge
+        <button id="saveDriveBridgeBtn" class="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm transition cursor-pointer">
+          Save Settings
         </button>
         <button id="syncDriveNowBtn" class="px-4 py-3 rounded-xl ios-pill text-gray-300 hover:text-white text-xs font-bold transition cursor-pointer">
           Sync Now

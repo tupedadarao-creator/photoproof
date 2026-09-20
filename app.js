@@ -877,7 +877,7 @@ class PhotoProofApp {
     }
   }
 
-  // ⚡ SMART PRELOAD – only previews for adjacent, full-res loads lazily
+  // ⚡ SUPER-FAST PRELOAD – Aggressively preload next 3 full-res images
   preloadAdjacentPhotos(index) {
     if (!this.filteredPhotos || this.filteredPhotos.length === 0) return;
     if (!this._preloadCache) this._preloadCache = new Set();
@@ -886,29 +886,27 @@ class PhotoProofApp {
     const preload = (idx, fullRes) => {
       const p = this.filteredPhotos[idx];
       if (!p) return;
-      // Always preload preview/thumb (small, fast)
+      // Preload preview/thumb (super fast blur-up)
       const previewSrc = p.preview || p.thumb;
       if (previewSrc && !this._preloadCache.has(previewSrc)) {
         this._preloadCache.add(previewSrc);
         new Image().src = previewSrc;
       }
-      // Only preload full-res for next photo only
+      // Preload full-res (1080p compressed from Drive, ~150KB)
       if (fullRes && p.url && !this._preloadCache.has(p.url)) {
         this._preloadCache.add(p.url);
         new Image().src = p.url;
       }
     };
 
-    // Next 1 photo: full-res preload (most likely to be visited next)
-    preload((index + 1) % len, true);
-    // Next 2-3: preview only
-    preload((index + 2) % len, false);
-    preload((index + 3) % len, false);
-    // Previous 1: preview only
-    preload((index - 1 + len) % len, false);
+    // Aggressive preloading for Lightning Fast speed (0-lag scrolling)
+    preload((index + 1) % len, true); // Next 1 (Full Res)
+    preload((index + 2) % len, true); // Next 2 (Full Res)
+    preload((index + 3) % len, true); // Next 3 (Full Res)
+    preload((index - 1 + len) % len, true); // Previous 1 (Full Res)
 
-    // Limit cache size to avoid memory bloat
-    if (this._preloadCache.size > 60) this._preloadCache.clear();
+    // Limit cache size slightly higher for aggressive preloading
+    if (this._preloadCache.size > 150) this._preloadCache.clear();
   }
 
   nextPhoto() { this.showPhoto(this.currentIndex + 1, 'local'); }
@@ -1080,44 +1078,73 @@ class PhotoProofApp {
     this.showNotification("Generating Organized 3-Folder ZIP...");
     const a = document.createElement('a');
     a.href = downloadUrl;
-    a.download = `PhotoProof_${(this.sessionTitle || 'Event').replace(/\s+/g, '_')}_Organized.zip`;
+    a.download = `selecto_${(this.sessionTitle || 'Event').replace(/\s+/g, '_')}_Organized.zip`;
     document.body.appendChild(a);
     a.click();
     setTimeout(() => a.remove(), 1000);
   }
 
   // --- FILMSTRIP ---
+  // 🚀 VIRTUAL DOM OPTIMIZATION (Chunked Rendering + Lazy Load)
   renderFilmstrip() {
     this.dom.filmstrip.innerHTML = '';
-    const maxCount = Math.min(this.filteredPhotos.length, 600);
+    const photos = this.filteredPhotos;
+    const len = photos.length;
+    if (len === 0) return;
 
-    for (let idx = 0; idx < maxCount; idx++) {
-      const photo = this.filteredPhotos[idx];
-      const thumb = document.createElement('div');
-      thumb.className = `filmstrip-thumb ${idx === this.currentIndex ? 'active' : ''}`;
-      thumb.dataset.id = photo.id;
-      thumb.dataset.index = idx;
+    // Remove old 600 limit. Render everything smoothly via chunking.
+    const renderId = Symbol('filmstrip_render');
+    this._currentFilmstripRenderId = renderId;
 
-      const img = document.createElement('img');
-      img.src = photo.thumb || photo.url;
-      img.alt = photo.title;
-      img.className = 'w-full h-full object-cover';
-      img.loading = 'lazy';
-      thumb.appendChild(img);
+    let idx = 0;
+    const chunkSize = 50; // Render 50 thumbs per frame (prevents UI freeze)
 
-      const decision = this.decisions[photo.id];
-      if (decision) {
-        const dot = document.createElement('div');
-        dot.className = `thumb-badge badge-${decision}`;
-        thumb.appendChild(dot);
+    const renderChunk = () => {
+      if (this._currentFilmstripRenderId !== renderId) return; // Abort if user changed filters
+
+      const end = Math.min(idx + chunkSize, len);
+      const fragment = document.createDocumentFragment();
+
+      for (; idx < end; idx++) {
+        const photo = photos[idx];
+        const thumb = document.createElement('div');
+        thumb.className = `filmstrip-thumb ${idx === this.currentIndex ? 'active' : ''}`;
+        thumb.dataset.id = photo.id;
+        thumb.dataset.index = idx;
+
+        const img = document.createElement('img');
+        img.src = photo.thumb || photo.url;
+        img.alt = photo.title || '';
+        // Add smooth fade-in for lazy-loaded images to look premium
+        img.className = 'w-full h-full object-cover transition-opacity duration-300 opacity-0';
+        img.loading = 'lazy'; 
+        img.onload = () => img.classList.remove('opacity-0');
+        
+        thumb.appendChild(img);
+
+        const decision = this.decisions[photo.id];
+        if (decision) {
+          const dot = document.createElement('div');
+          dot.className = `thumb-badge badge-${decision}`;
+          thumb.appendChild(dot);
+        }
+
+        thumb.addEventListener('click', (e) => {
+          const clickedIdx = parseInt(e.currentTarget.dataset.index);
+          this.showPhoto(clickedIdx, 'local');
+        });
+
+        fragment.appendChild(thumb);
       }
+      
+      this.dom.filmstrip.appendChild(fragment);
 
-      thumb.addEventListener('click', () => {
-        this.showPhoto(idx, 'local');
-      });
+      if (idx < len) {
+        requestAnimationFrame(renderChunk);
+      }
+    };
 
-      this.dom.filmstrip.appendChild(thumb);
-    }
+    requestAnimationFrame(renderChunk);
   }
 
   updateFilmstripThumb(photoId, decision) {
