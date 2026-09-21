@@ -359,7 +359,36 @@ class PhotoProofingHandler(http.server.SimpleHTTPRequestHandler):
             self.handle_drive_folder_sync(payload)
             return
 
+        elif parsed.path == '/api/upload-photo':
+            self.handle_upload_photo(payload)
+            return
+
         self.send_json_response(404, {"error": "Endpoint not found"})
+
+
+    # --- PHOTO UPLOAD: saves data URL as actual image file ---
+    def handle_upload_photo(self, payload):
+        import base64
+        try:
+            session_id = payload.get('session_id', '')
+            filename = payload.get('filename', 'photo.jpg')
+            data_url = payload.get('data_url', '')
+            if not session_id or not data_url:
+                self.send_json_response(400, {"error": "Missing fields"})
+                return
+            safe_name = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+            if ',' in data_url:
+                data_url = data_url.split(',', 1)[1]
+            img_bytes = base64.b64decode(data_url)
+            uploads_dir = os.path.join(DIRECTORY, 'uploads')
+            os.makedirs(uploads_dir, exist_ok=True)
+            file_path = os.path.join(uploads_dir, f"{session_id}_{safe_name}.jpg")
+            with open(file_path, 'wb') as f:
+                f.write(img_bytes)
+            file_url = f"/uploads/{session_id}_{safe_name}.jpg"
+            self.send_json_response(200, {"success": True, "url": file_url})
+        except Exception as e:
+            self.send_json_response(500, {"error": str(e)})
 
     # --- REAL-TIME SERVER-SENT EVENTS (SSE) STREAM (< 30ms ZERO LAG) ---
     def handle_session_stream(self, query_string):
@@ -851,18 +880,23 @@ How to use:
         logo_url = payload.get('logoUrl', '')
         photographer_name = payload.get('photographerName', '')
         drive_bridge_url = payload.get('driveBridgeUrl', '')
+        owner_email = payload.get('ownerEmail', '')
 
         if not photos:
             self.send_json_response(400, {"success": False, "error": "Photos list cannot be empty."})
             return
 
-        session_id = f"evt_{uuid.uuid4().hex[:8]}"
+        provided_id = payload.get('sessionId', '').strip()
+        session_id = provided_id if provided_id else f"evt_{uuid.uuid4().hex[:8]}"
         sessions = load_sessions()
-        
+        now_ts = int(time.time())
+
+        # Permanently saved per photographer (Unlimited Retention)
         sessions[session_id] = {
             "id": session_id,
             "title": title,
-            "createdAt": int(time.time()),
+            "createdAt": now_ts,
+            "ownerEmail": owner_email,
             "folderUrl": folder_url,
             "driveBridgeUrl": drive_bridge_url,
             "photographerName": photographer_name,

@@ -36,7 +36,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <!-- Custom iOS 18 Luxury Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260919_v10">
+  <link rel="stylesheet" href="styles.css?v=20260921_v35">
   
   <!-- Bulletproof Modal Open/Close Global Functions -->
   <script>
@@ -44,7 +44,8 @@
       var modal = document.getElementById('importModal');
       if (modal) {
         modal.classList.remove('hidden');
-        modal.style.display = 'flex';
+        modal.style.setProperty('display', 'flex', 'important');
+        modal.style.setProperty('z-index', '999999', 'important');
         var input = document.getElementById('linkInput');
         if (input) setTimeout(function() { input.focus(); }, 100);
       }
@@ -104,6 +105,32 @@
             if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4"></i><span>⚡ Start Proofing & Sync Photos (सर्व फोटो लोड करा)</span>'; }
             alert("Sync Error: " + err.message);
           });
+      }
+    };
+    window.openLocalFolderImport = function() {
+      var landing = document.getElementById('aikalakarSuiteLanding');
+      if (landing) {
+        landing.remove(); // Completely remove from DOM
+      }
+      var elements = ['bottomBar', 'dynamicIsland', 'quickDownloadBtn', 'prevBtn', 'nextBtn', 'imageCanvas'];
+      elements.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.classList.remove('hidden');
+          el.style.display = 'flex';
+        }
+      });
+      if (!window.app && typeof PhotoProofApp === 'function') {
+        try {
+          window.app = new PhotoProofApp();
+        } catch(e) {
+          console.error("Init PhotoProofApp error:", e);
+        }
+      }
+      if (window.app && typeof window.app.handleLocalFolderImport === 'function') {
+        window.app.handleLocalFolderImport();
+      } else {
+        alert("Preparing local folder import...");
       }
     };
     window.openBrandModal = function() {
@@ -313,7 +340,7 @@
 <body class="bg-[#080a0f] text-gray-100 flex flex-col h-screen w-screen overflow-hidden select-none">
 
   <!-- ── SELECTO CLEAN LANDING PAGE ── -->
-  <div id="aikalakarSuiteLanding" class="fixed inset-0 z-[100] flex flex-col bg-[#080a0f] overflow-y-auto">
+  <div id="aikalakarSuiteLanding" class="fixed inset-0 z-[99999] flex flex-col bg-[#080a0f] overflow-y-auto w-full h-full">
     
     <!-- Navbar -->
     <nav class="w-full max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
@@ -348,7 +375,7 @@
       </p>
 
       <!-- BIG LAUNCH BUTTON -->
-      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.add('hidden'); window.openDriveModal();"
+      <button onclick="window.openDriveModal()"
               class="w-full max-w-md py-4 px-8 rounded-2xl bg-white hover:bg-gray-200 text-black font-extrabold text-sm sm:text-base flex items-center justify-center gap-3 transition transform hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-2xl shadow-white/10 mb-4">
         <i data-lucide="sparkles" class="w-5 h-5 text-black"></i>
         <span>Launch selecto (Free)</span>
@@ -415,14 +442,59 @@
             </div>
           </div>
 
-          <div class="flex items-start gap-4">
-            <div class="mt-1 w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0">
-              <i data-lucide="cloud" class="w-4 h-4 text-blue-400"></i>
+      <!-- 🛡️ BILINGUAL 100% DATA PRIVACY & SECURITY SECTION 🛡️ -->
+      <div class="w-full text-left bg-gradient-to-b from-emerald-950/20 to-transparent border border-emerald-500/20 rounded-3xl p-6 sm:p-8 mb-12">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <i data-lucide="shield-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">100% Data Privacy & Security / डेटा सुरक्षिततेची १००% हमी</h3>
+            <p class="text-xs text-emerald-400 font-medium">Zero-Knowledge Architecture · तुमचा डेटा फक्त तुमचाच राहतो</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <!-- Point 1 -->
+          <div class="bg-[#0d1018] border border-white/[0.06] p-5 rounded-2xl">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+              <span>End-to-End Private / पूर्ण गोपनीयता</span>
             </div>
-            <div>
-              <h4 class="text-sm font-bold text-gray-200">No Storage Limits</h4>
-              <p class="text-[11px] text-gray-400 mt-1">Since we sync directly with your own Google Drive, you have unlimited storage based on your own Google account.</p>
+            <p class="text-xs text-gray-300 leading-relaxed mb-2">
+              Your photos stay on your local computer or private Google Drive. We never store or save high-res photos on our servers.
+            </p>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              तुमचे फोटो फक्त तुमच्या कम्प्युटर किंवा ड्राईव्हवर राहतात. आम्ही ते आमच्या सर्व्हरवर कधीच सेव्ह करत नाही.
+            </p>
+          </div>
+
+          <!-- Point 2 -->
+          <div class="bg-[#0d1018] border border-white/[0.06] p-5 rounded-2xl">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+              <i data-lucide="eye-off" class="w-4 h-4"></i>
+              <span>Even We Can't See / आम्हीसुद्धा पाहू शकत नाही</span>
             </div>
+            <p class="text-xs text-gray-300 leading-relaxed mb-2">
+              Only you and your client with the unique share link can access photos. Even Selecto admins cannot see your photos.
+            </p>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              फक्त तुम्ही आणि तुम्ही शेअर केलेली लिंक असलेला क्लायंटच फोटो पाहू शकतात. Selecto चा मालक किंवा डेव्हलपरसुद्धा तुमचे फोटो पाहू शकत नाही.
+            </p>
+          </div>
+
+          <!-- Point 3 -->
+          <div class="bg-[#0d1018] border border-white/[0.06] p-5 rounded-2xl">
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-xs mb-2">
+              <i data-lucide="key" class="w-4 h-4"></i>
+              <span>Protected Access Tokens / सुरक्षित लिंक्स</span>
+            </div>
+            <p class="text-xs text-gray-300 leading-relaxed mb-2">
+              Every proofing link is encrypted with security tokens to prevent unauthorized access or link leaks.
+            </p>
+            <p class="text-[11px] text-gray-400 leading-relaxed">
+              प्रत्येक लिंक सिक्युरिटी टोकन्सने एन्क्रिप्टेड (Encrypted) असते, ज्यामुळे कोणतीही अनधिकृत व्यक्ती तुमचे फोटो पाहू शकत नाही.
+            </p>
           </div>
         </div>
       </div>
@@ -440,6 +512,9 @@
 
   <!-- Screen Edge Glow Flash Overlay (On Select/Reject/Decide) -->
   <div id="screenFlashOverlay" class="screen-flash"></div>
+
+  <!-- Hi-Tech Camera Shutter Flash Overlay (On Photo Change) -->
+  <div id="shutterFlashOverlay"></div>
 
   <!-- Center Dynamic Pop Stamp (Animated Haptic Burst) -->
   <div id="popStamp" class="decision-pop-stamp">
@@ -498,19 +573,19 @@
     <!-- Right: Quick Studio Action Buttons -->
     <div class="flex items-center gap-1.5 pl-2 border-l border-white/10">
       <!-- 🌟 AIKALAKAR SUITE PORTAL BUTTON 🌟 -->
-      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.remove('hidden')" title="AIKALAKAR AI Suite Tools" class="bg-white/[0.07] hover:bg-white/[0.12] text-white font-semibold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1 border border-white/[0.08] transition cursor-pointer">
+      <button onclick="document.getElementById('aikalakarSuiteLanding').classList.remove('hidden')" title="AIKALAKAR AI Suite Tools" class="hidden md:flex bg-white/[0.07] hover:bg-white/[0.12] text-white font-semibold text-xs px-3 py-1.5 rounded-xl items-center gap-1 border border-white/[0.08] transition cursor-pointer">
         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
         <span>AIKALAKAR Suite</span>
       </button>
 
       <!-- 📁 ONE SINGLE GOOGLE DRIVE SYNC BUTTON 📁 -->
-      <button id="openImportBtn" onclick="window.openDriveModal()" title="Google Drive Link & 3-Folder Sync" class="bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 border border-blue-500/25 transition cursor-pointer">
+      <button id="openImportBtn" onclick="window.openDriveModal()" title="Google Drive Link & 3-Folder Sync" class="hidden sm:flex bg-blue-600/15 hover:bg-blue-600/25 text-blue-300 hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl items-center gap-1.5 border border-blue-500/25 transition cursor-pointer">
         <i data-lucide="cloud-cog" class="w-4 h-4 text-white"></i>
         <span>📁 Google Drive Sync</span>
       </button>
 
             <!-- 👤 PHOTOGRAPHER ACCOUNT & SUBSCRIPTION BUTTON 👤 -->
-      <button id="photographerAccountBtn" onclick="window.openSubscriptionModal()" title="Photographer Account & Subscription" class="bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white font-semibold text-xs px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-amber-500/30 transition cursor-pointer">
+      <button id="photographerAccountBtn" onclick="window.openSubscriptionModal()" title="Photographer Account & Subscription" class="hidden sm:flex bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 hover:text-white font-semibold text-xs px-3 py-1.5 rounded-xl items-center gap-1.5 border border-amber-500/30 transition cursor-pointer">
         <i data-lucide="user-check" class="w-3.5 h-3.5 text-amber-400"></i>
         <span id="photographerNavLabel">Pro Account</span>
       </button>
@@ -669,24 +744,25 @@
     </div>
   </footer>
 
-  <!-- MODAL 1: IMPORT GOOGLE DRIVE FOLDER -->
-  <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+  <!-- MODAL 1: IMPORT EVENT (OPTION A: DIRECT COMPUTER FOLDER | OPTION B: GOOGLE DRIVE) -->
+  <div id="importModal" class="hidden fixed inset-0 z-[999999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
     <div class="ios-glass w-full max-w-xl rounded-3xl p-6 sm:p-8 relative my-auto border border-white/10 shadow-2xl">
       <button id="importCloseBtn" class="absolute top-5 right-5 p-2 rounded-full hover:bg-white/10 text-gray-400 hover:text-white transition cursor-pointer">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
 
       <div class="flex items-center space-x-3.5 mb-6">
-        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
           <i data-lucide="folder-search" class="w-5 h-5"></i>
         </div>
         <div>
-          <h2 class="text-base font-bold text-white tracking-tight">Import Google Drive Event</h2>
-          <p class="text-xs text-gray-400">Sync photo assets directly from your Google Drive storage</p>
+          <h2 class="text-base font-bold text-white tracking-tight">Import Event Photos</h2>
+          <p class="text-xs text-gray-400">Choose Direct Computer Folder or Google Drive</p>
         </div>
       </div>
 
-      <div class="space-y-4 mb-6">
+      <div class="space-y-5 mb-6">
+        <!-- Event Title -->
         <div>
           <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5">Event / Album Title</label>
           <input id="albumTitleInput" 
@@ -695,26 +771,45 @@
                  class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
         </div>
 
-        <div>
-          <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <i data-lucide="folder-input" class="w-3.5 h-3.5 text-gray-400"></i>
-            <span>1. Input Drive Link (Proofing Photos)</span>
+        <!-- 🌟 OPTION A: DIRECT COMPUTER FOLDER 🌟 -->
+        <div class="p-4 rounded-2xl bg-[#121318] border border-white/10">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="laptop" class="w-4 h-4 text-gray-400"></i>
+              <span>Option A: Direct Computer Folder</span>
+            </span>
+            <span class="text-[10px] font-semibold px-2 py-0.5 rounded bg-white/10 text-gray-300 border border-white/10">Instant · 0 Cloud Cost</span>
+          </div>
+          <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">
+            Select photos directly from your Mac / PC hard drive. Client votes will automatically sort files on your computer!
+          </p>
+          <button id="selectLocalFolderBtn" type="button" onclick="window.openLocalFolderImport()" class="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 cursor-pointer">
+            <i data-lucide="folder-open" class="w-4 h-4 text-black"></i>
+            <span>💻 Select Folder from Computer</span>
+          </button>
+        </div>
+
+        <!-- OR SEPARATOR -->
+        <div class="relative flex items-center justify-center">
+          <div class="border-t border-white/10 w-full"></div>
+          <span class="bg-[#080a0f] px-3 text-[10px] uppercase font-bold text-gray-500 absolute">OR</span>
+        </div>
+
+        <!-- 🌟 OPTION B: GOOGLE DRIVE LINK 🌟 -->
+        <div class="p-4 rounded-2xl bg-[#121318] border border-white/10">
+          <label class="block text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i data-lucide="cloud" class="w-4 h-4 text-gray-400"></i>
+            <span>Option B: Google Drive Folder Link</span>
           </label>
           <input id="linkInput" 
                  type="text" 
                  placeholder="Paste Google Drive Proofing Folder Link..." 
-                 class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
-        </div>
-
-        <div>
-          <label class="block text-[11px] font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <i data-lucide="folder-output" class="w-3.5 h-3.5 text-gray-400"></i>
-            <span>2. Output Drive Link (Selected Destination - Optional)</span>
-          </label>
-          <input id="importDriveBridgeUrlInput" 
-                 type="text" 
-                 placeholder="Paste Destination Folder Link..." 
-                 class="w-full bg-[#121318] border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-white/30 transition" />
+                 class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none focus:border-white/30 transition mb-3" />
+          
+          <button id="processLinksBtn" type="button" onclick="window.startDriveSync()" class="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-white/10">
+            <i data-lucide="sparkles" class="w-4 h-4 text-gray-300"></i>
+            <span>Start Drive Proofing Session</span>
+          </button>
         </div>
 
         <!-- 🌟 PHOTOGRAPHER LOGO & WATERMARK SETTINGS 🌟 -->
@@ -722,13 +817,10 @@
           <div class="flex items-center justify-between mb-2">
             <label class="text-[11px] font-bold text-gray-200 flex items-center gap-1.5 uppercase tracking-wider">
               <i data-lucide="stamp" class="w-3.5 h-3.5 text-gray-400"></i>
-              <span>3. Studio Watermark (Brand Overlay)</span>
+              <span>Studio Watermark (Brand Overlay)</span>
             </label>
             <span class="text-[10px] text-gray-400 font-semibold px-2 py-0.5 rounded-md bg-white/5 border border-white/10">Auto Overlay</span>
           </div>
-          <p class="text-[11px] text-gray-400 mb-3 leading-relaxed">
-            Automatically embed your brand mark on client preview downloads.
-          </p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <input id="importPhotographerName" 
@@ -743,24 +835,11 @@
                      class="w-full text-[11px] text-gray-400 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[11px] file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer bg-black/40 rounded-xl border border-white/10 p-1" />
             </div>
           </div>
-          <div id="importLogoPreviewContainer" class="hidden mt-3 flex items-center gap-3 bg-black/40 p-2.5 rounded-xl border border-white/10">
-            <img id="importLogoPreview" src="" alt="Logo Preview" class="h-6 max-w-[100px] object-contain rounded bg-white/10 p-1" />
-            <span class="text-[11px] text-gray-300 font-medium">✓ Watermark Ready</span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 text-[11px] text-gray-400 bg-white/5 p-3 rounded-xl border border-white/10">
-          <i data-lucide="shield-check" class="w-4 h-4 text-gray-300 flex-shrink-0"></i>
-          <span>Ensure Google Drive link sharing is set to <strong>"Anyone with the link can view"</strong>.</span>
         </div>
       </div>
 
-      <div class="flex flex-col sm:flex-row items-center gap-3 pt-2">
-        <button id="processLinksBtn" type="button" onclick="window.startDriveSync()" class="w-full sm:flex-1 py-3 px-5 rounded-xl bg-white hover:bg-gray-100 text-black font-bold text-xs shadow-xl transition transform active:scale-98 flex items-center justify-center gap-2 cursor-pointer">
-          <i data-lucide="sparkles" class="w-4 h-4 text-black"></i>
-          <span>Start Proofing Session</span>
-        </button>
-        <button id="loadDemoBtn" class="w-full sm:w-auto py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer">
+      <div class="flex items-center justify-between pt-2">
+        <button id="loadDemoBtn" class="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 hover:text-white text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer">
           <i data-lucide="image" class="w-3.5 h-3.5 text-gray-400"></i>
           <span>Sample Demo</span>
         </button>
@@ -1119,6 +1198,6 @@
   </div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=20260918_v9"></script>
+  <script src="app.js?v=20260921_v35"></script>
 </body>
 </html>

@@ -34,6 +34,18 @@ body {
   font-feature-settings: "cv02","cv03","cv04","cv11";
 }
 
+/* Bulletproof hidden utility to override flex and block */
+.hidden {
+  display: none !important;
+}
+
+#aikalakarSuiteLanding.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -537,3 +549,89 @@ body {
   opacity: 0;
   visibility: hidden;
 }
+/* ── DIRECTIONAL SNAP-SLIDE (Fast Physical Flick + Spring Snap) ── */
+#activeImage {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform-origin: center center;
+}
+
+/* Next photo → slides in from RIGHT with spring snap */
+@keyframes snapSlideFromRight {
+  0%   { opacity: 0; transform: translateX(55px) scale(0.94); }
+  55%  { opacity: 1; transform: translateX(-5px) scale(1.008); }
+  80%  { opacity: 1; transform: translateX(2px)  scale(0.998); }
+  100% { opacity: 1; transform: translateX(0px)  scale(1.0);   }
+}
+
+/* Prev photo → slides in from LEFT with spring snap */
+@keyframes snapSlideFromLeft {
+  0%   { opacity: 0; transform: translateX(-55px) scale(0.94); }
+  55%  { opacity: 1; transform: translateX(5px)   scale(1.008); }
+  80%  { opacity: 1; transform: translateX(-2px)  scale(0.998); }
+  100% { opacity: 1; transform: translateX(0px)   scale(1.0);   }
+}
+
+.photo-snap-right {
+  animation: snapSlideFromRight 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.photo-snap-left {
+  animation: snapSlideFromLeft 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Subtle edge vignette flash on snap */
+#shutterFlashOverlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.0) 40%, rgba(255,255,255,0.06) 100%);
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+}
+
+@keyframes vignetteSnap {
+  0%   { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#shutterFlashOverlay.flash {
+  animation: vignetteSnap 0.18s ease-out forwards;
+}
+
+/* ── MOBILE & LANDSCAPE RESPONSIVE FIXES ── */
+@media (max-width: 640px) {
+  .dynamic-island {
+    max-width: 95vw;
+    padding: 4px 8px;
+    gap: 4px;
+    top: 6px;
+  }
+}
+
+/* Landscape Mode Adjustments for Mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .dynamic-island {
+    top: 4px;
+    padding: 2px 8px;
+    transform: scale(0.85);
+  }
+  
+  .decision-dock {
+    bottom: 4px !important;
+    padding: 4px !important;
+    transform: scale(0.85);
+    z-index: 40;
+  }
+
+  .filmstrip-container {
+    height: 44px !important;
+    bottom: 50px !important;
+  }
+
+  #imageCanvas {
+    padding-top: 40px;
+    padding-bottom: 90px;
+  }
+}
+

@@ -408,6 +408,11 @@ class PhotoProofApp {
       this.updateStats();
       this.updateActiveBadge();
       this.updateFilmstripThumb(photoId, decision);
+
+      // Local Hard Disk 3-Folder Auto-Sort (Original Quality)
+      if (this.localDirHandle && photoId && decision) {
+        this.sortLocalFileOnDisk(photoId, decision);
+      }
     }
   }
 
@@ -438,21 +443,26 @@ class PhotoProofApp {
     const sessionId = params.get('session');
 
     if (sessionId) {
+      // 🛡️ Hide landing IMMEDIATELY - don't wait for session to load
+      const landingOverlay = document.getElementById('aikalakarSuiteLanding');
+      if (landingOverlay) {
+        landingOverlay.style.setProperty('display', 'none', 'important');
+        landingOverlay.style.setProperty('visibility', 'hidden', 'important');
+        landingOverlay.style.setProperty('z-index', '-1', 'important');
+      }
       await this.loadRemoteSession(sessionId);
     } else {
-      const savedSessionId = localStorage.getItem('last_proof_session');
-      if (savedSessionId) {
-        await this.loadRemoteSession(savedSessionId).catch(() => {
-          this.loadLocalPhotos(SAMPLE_ALBUM, "Sample Wedding Proofing");
-        });
-      } else {
-        this.loadLocalPhotos(SAMPLE_ALBUM, "Sample Wedding Proofing");
-        // Automatically pop up Google Drive link dialog so user can enter their link right away
-        setTimeout(() => {
-          this.dom.importModal.classList.remove('hidden');
-          if (window.lucide) window.lucide.createIcons();
-        }, 300);
-      }
+      // 🛡️ SECURITY & UI FIX: Clean homepage, hide bottomBar & dynamicIsland on root URL
+      this.allPhotos = [];
+      this.filteredPhotos = [];
+      this.decisions = {};
+      this.dom.activeImage.src = '';
+      this.dom.filmstrip.innerHTML = '';
+      this.dom.photoCounter.textContent = '0 / 0';
+      this.dom.currentPhotoName.textContent = '';
+      this.dom.photoBadge.className = 'photo-decision-watermark hidden';
+      
+      // Landing page has z-[99999] so it covers everything — no need to hide elements
     }
   }
 
@@ -480,6 +490,22 @@ class PhotoProofApp {
       // 🛡️ SECURITY: HIDE ADMIN / DRIVE IMPORT / SETTINGS BUTTONS FROM CLIENT
       this.applyClientSecurityMode();
 
+      // 🌟 Hide Landing Page completely
+      const landingOverlay = document.getElementById('aikalakarSuiteLanding');
+      if (landingOverlay) {
+        landingOverlay.style.setProperty('display', 'none', 'important');
+        landingOverlay.style.setProperty('visibility', 'hidden', 'important');
+        landingOverlay.style.setProperty('z-index', '-1', 'important');
+      }
+
+      // 🌟 Ensure all viewer UI elements are 100% visible
+      if (this.dom.bottomBar) this.dom.bottomBar.classList.remove('hidden');
+      if (this.dom.dynamicIsland) this.dom.dynamicIsland.classList.remove('hidden');
+      if (this.dom.quickDownloadBtn) this.dom.quickDownloadBtn.classList.remove('hidden');
+      if (this.dom.prevBtn) this.dom.prevBtn.classList.remove('hidden');
+      if (this.dom.nextBtn) this.dom.nextBtn.classList.remove('hidden');
+      if (this.dom.imageCanvas) this.dom.imageCanvas.classList.remove('hidden');
+
       this.updateShareUrls();
       this.applyFilter(this.currentFilter);
       this.updateStats();
@@ -489,7 +515,8 @@ class PhotoProofApp {
       this.initRealtimeStream(sessionId);
       this.showNotification(`Loaded Session: ${this.sessionTitle}`);
     } catch (err) {
-      this.loadLocalPhotos(SAMPLE_ALBUM, "Sample Wedding Proofing");
+      console.error("loadRemoteSession error:", err);
+      this.showNotification("Session not found or error loading.");
     } finally {
       this.dom.loadingSpinner.classList.add('hidden');
     }
@@ -499,8 +526,15 @@ class PhotoProofApp {
     const urlParams = new URLSearchParams(window.location.search);
     const hasSession = urlParams.has('session');
     
-    // Hide Import Drive Modal & Settings from Clients
+    // Hide Landing Page and Studio controls if session is loaded via URL
     if (hasSession) {
+      const landingOverlay = document.getElementById('aikalakarSuiteLanding');
+      if (landingOverlay) {
+        landingOverlay.style.setProperty('display', 'none', 'important');
+        landingOverlay.style.setProperty('visibility', 'hidden', 'important');
+        landingOverlay.style.setProperty('z-index', '-1', 'important');
+      }
+
       if (this.dom.openDriveModalBtn) this.dom.openDriveModalBtn.style.display = 'none';
       if (this.dom.importModal) {
         this.dom.importModal.classList.add('hidden');
@@ -515,8 +549,14 @@ class PhotoProofApp {
     }
   }
 
-  async createRemoteSession(title, photos, folderUrl = '') {
+  async createRemoteSession(title, photos, folderUrl = '', sessionId = '') {
     try {
+      const userStr = localStorage.getItem('proof_photographer_user');
+      let ownerEmail = '';
+      if (userStr) {
+        try { ownerEmail = JSON.parse(userStr).email || ''; } catch(e){}
+      }
+
       const res = await fetch('/api/session/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -526,7 +566,9 @@ class PhotoProofApp {
           folderUrl: folderUrl,
           driveBridgeUrl: this.driveBridgeUrl,
           logoUrl: this.branding.logoUrl,
-          photographerName: this.branding.photographerName
+          photographerName: this.branding.photographerName,
+          ownerEmail: ownerEmail,
+          sessionId: sessionId || ''
         })
       });
 
@@ -535,7 +577,6 @@ class PhotoProofApp {
         this.sessionId = data.sessionId;
         this.networkUrl = data.networkUrl;
         this.localUrl = data.localUrl;
-        localStorage.setItem('last_proof_session', data.sessionId);
         this.updateShareUrls();
 
         const url = new URL(window.location.href);
@@ -587,6 +628,11 @@ class PhotoProofApp {
     this.updateActiveBadge();
     this.updateFilmstripThumb(photo.id, newDecision);
 
+    // Local Hard Drive 3-Folder Auto-Sort (Original Quality)
+    if (this.localDirHandle && photo.id && newDecision) {
+      this.sortLocalFileOnDisk(photo.id, newDecision);
+    }
+
     // 2. BROADCAST REAL-TIME TO ALL CONNECTED CLIENTS & GOOGLE DRIVE BRIDGE
     if (this.sessionId) {
       fetch('/api/session/vote', {
@@ -606,6 +652,46 @@ class PhotoProofApp {
       setTimeout(() => {
         this.nextPhoto();
       }, 190);
+    }
+  }
+
+  // 💻 LOCAL HARD DRIVE 3-FOLDER AUTO-SORT: Copy 100% Original Quality files into Selected, Rejected, Decide folders
+  async sortLocalFileOnDisk(fileName, category) {
+    if (!this.localDirHandle || !fileName) return;
+
+    const categoryMap = {
+      'select': 'Selected',
+      'reject': 'Rejected',
+      'maybe': 'Decide'
+    };
+
+    const targetFolderName = categoryMap[category];
+    if (!targetFolderName) return;
+
+    try {
+      let fileHandle;
+      try {
+        fileHandle = await this.localDirHandle.getFileHandle(fileName);
+      } catch(e) {
+        console.warn(`[Disk Auto-Sort] Original file ${fileName} not found in local folder root.`);
+        return;
+      }
+
+      const originalFile = await fileHandle.getFile();
+
+      // Create target subfolder (Selected / Rejected / Decide) inside the SAME original computer folder
+      const subDirHandle = await this.localDirHandle.getDirectoryHandle(targetFolderName, { create: true });
+      const targetFileHandle = await subDirHandle.getFileHandle(fileName, { create: true });
+      const writable = await targetFileHandle.createWritable();
+      
+      // Write exact 100% original quality bytes to local hard drive
+      await writable.write(originalFile);
+      await writable.close();
+
+      console.log(`[Local Hard Drive Auto-Sort] ✅ ${fileName} -> ${targetFolderName}/ (Original Quality)`);
+      this.showNotification(`Disk Auto-Sort: ${fileName} -> ${targetFolderName}/`);
+    } catch (err) {
+      console.warn("[Local Disk Auto-Sort Notice]", err);
     }
   }
 
@@ -776,6 +862,110 @@ class PhotoProofApp {
     }
   }
 
+  // 💻 OPTION A: DIRECT COMPUTER FOLDER IMPORT (Instant Local Hard Drive Sync + Cross-Device Client Share)
+  async handleLocalFolderImport() {
+    try {
+      if (!('showDirectoryPicker' in window)) {
+        alert("Local Folder Selection is supported in Chrome, Edge, Safari & Desktop browsers!");
+        return;
+      }
+
+      const albumTitleInput = document.getElementById('albumTitleInput');
+      const title = (albumTitleInput && albumTitleInput.value.trim()) ? albumTitleInput.value.trim() : "Local Computer Event";
+
+      const dirHandle = await window.showDirectoryPicker();
+      const photos = [];
+      const localFiles = [];
+
+      this.showNotification("Processing local photos for client sharing...");
+
+      for await (const entry of dirHandle.values()) {
+        if (entry.kind === 'file') {
+          const file = await entry.getFile();
+          if (file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp|heic|bmp)$/i.test(file.name)) {
+            localFiles.push({ name: entry.name, file: file });
+          }
+        }
+      }
+
+      if (localFiles.length === 0) {
+        alert("No image files found in the selected folder!");
+        return;
+      }
+
+
+
+      // Close modal IMMEDIATELY, show loading state
+      if (this.dom.importModal) {
+        this.dom.importModal.classList.add('hidden');
+        this.dom.importModal.style.display = 'none';
+      }
+      // Hide landing now
+      const landingEl = document.getElementById('aikalakarSuiteLanding');
+      if (landingEl) landingEl.style.setProperty('display','none','important');
+
+      this.showNotification(`📸 Processing ${localFiles.length} photos...`);
+
+      // Generate temporary session ID for upload
+      const tempSessionId = 'evt_' + Math.random().toString(36).substring(2, 10);
+
+      // Compress photos (smaller size = faster)
+      const compressLocalImage = (file, maxWidth = 900) => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              let width = img.width, height = img.height;
+              if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+              canvas.width = width; canvas.height = height;
+              canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+              resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = () => resolve(e.target.result);
+            img.src = e.target.result;
+          };
+          reader.readAsDataURL(file);
+        });
+      };
+
+      for (let i = 0; i < localFiles.length; i++) {
+        const item = localFiles[i];
+        const dataUrl = await compressLocalImage(item.file);
+        photos.push({ id: item.name, title: item.name, url: dataUrl, thumb: dataUrl, preview: dataUrl, source: 'local', _filename: item.name });
+        if (i % 3 === 0) this.showNotification(`📸 ${i+1}/${localFiles.length} photos ready...`);
+      }
+
+      this.localDirHandle = dirHandle;
+      this.loadLocalPhotos(photos, title);
+      this.showNotification(`✅ ${photos.length} photos loaded!`);
+
+      // Upload photos to server → get file URLs → create session (background)
+      try {
+        const serverPhotos = [];
+        for (let i = 0; i < photos.length; i++) {
+          const p = photos[i];
+          const res = await fetch('/api/upload-photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: tempSessionId, filename: p._filename || p.id, data_url: p.url })
+          });
+          const data = await res.json();
+          serverPhotos.push({ id: p.id, title: p.title, url: data.url || p.url, thumb: data.url || p.url, preview: data.url || p.url, source: 'local' });
+        }
+        await this.createRemoteSession(title, serverPhotos, dirHandle.name, tempSessionId);
+      } catch(sessionErr) {
+        console.warn('Session upload warning:', sessionErr.message);
+      }
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error("Local folder import error:", err);
+        alert("Failed to access local folder: " + err.message);
+      }
+    }
+  }
+
   extractDrivePhotos(text) {
     const extracted = [];
     const seen = new Set();
@@ -804,6 +994,21 @@ class PhotoProofApp {
     this.sessionTitle = title;
     this.decisions = {};
     this.dom.sessionTitleDisplay.textContent = title;
+
+    // 🌟 Hide Landing Page - bulletproof inline style
+    const landingOverlay = document.getElementById('aikalakarSuiteLanding');
+    if (landingOverlay) {
+      landingOverlay.style.setProperty('display', 'none', 'important');
+      landingOverlay.style.setProperty('visibility', 'hidden', 'important');
+      landingOverlay.style.setProperty('z-index', '-1', 'important');
+    }
+
+    if (this.dom.bottomBar) this.dom.bottomBar.classList.remove('hidden');
+    if (this.dom.dynamicIsland) this.dom.dynamicIsland.classList.remove('hidden');
+    if (this.dom.quickDownloadBtn) this.dom.quickDownloadBtn.classList.remove('hidden');
+    if (this.dom.prevBtn) this.dom.prevBtn.classList.remove('hidden');
+    if (this.dom.nextBtn) this.dom.nextBtn.classList.remove('hidden');
+
     this.applyFilter('all');
     this.updateStats();
   }
@@ -825,49 +1030,38 @@ class PhotoProofApp {
     this.updateStats();
     this.updateActiveBadge();
 
-    // 🌟 1. INSTANT PROGRESSIVE PREVIEW (0ms perceived latency) 🌟
+    // 🌟 1. DETECT DIRECTION for snap-slide (Next = right, Prev = left)
+    const snapClass = (index >= (this._lastIndex ?? index)) ? 'photo-snap-right' : 'photo-snap-left';
+    this._lastIndex = index;
+
+    // 🌟 2. INSTANT PROGRESSIVE PREVIEW (blur placeholder = 0ms perceived latency)
     const instantThumb = photo.preview || photo.thumb;
     if (this.dom.progressivePreviewImg && instantThumb) {
       this.dom.progressivePreviewImg.src = instantThumb;
       this.dom.progressivePreviewLayer?.classList.remove('hidden');
     }
 
-    // 🌟 2. FULL RESOLUTION HIGH QUALITY LOAD 🌟
-    const targetSrc = photo.url;
-    const tempImg = new Image();
-    let triedFallback = false;
+    // 🌟 3. VIGNETTE SNAP FLASH (subtle edge feedback = speed sensation)
+    const shutterEl = document.getElementById('shutterFlashOverlay');
+    if (shutterEl) {
+      shutterEl.classList.remove('flash');
+      void shutterEl.offsetWidth;
+      shutterEl.classList.add('flash');
+    }
 
-    tempImg.onload = () => {
-      if (this.currentIndex === index) {
-        this.dom.activeImage.src = tempImg.src;
-        this.dom.activeImage.style.opacity = '1';
-        this.dom.activeImage.style.transform = 'scale(1)';
-        this.dom.loadingSpinner?.classList.add('hidden');
-        // Smooth crossfade from thumbnail
-        setTimeout(() => {
-          if (this.currentIndex === index) {
-            this.dom.progressivePreviewLayer?.classList.add('hidden');
-          }
-        }, 120);
-      }
-    };
+    // Set image directly (no preload wait = instant display)
+    const targetSrc = photo.url || photo.preview || photo.thumb || '';
+    this.dom.activeImage.classList.remove('photo-snap-right', 'photo-snap-left', 'photo-snap-in', 'photo-depth-enter');
+    void this.dom.activeImage.offsetWidth;
+    this.dom.activeImage.src = targetSrc;
+    this.dom.activeImage.classList.add(snapClass);
+    this.dom.loadingSpinner?.classList.add('hidden');
+    setTimeout(() => { this.dom.progressivePreviewLayer?.classList.add('hidden'); }, 200);
 
-    tempImg.onerror = () => {
-      if (!triedFallback && photo.fallbackUrl) {
-        triedFallback = true;
-        tempImg.src = photo.fallbackUrl;
-      } else if (this.currentIndex === index) {
-        this.dom.loadingSpinner?.classList.add('hidden');
-        this.dom.activeImage.src = photo.url;
-        this.dom.activeImage.style.opacity = '1';
-        this.dom.progressivePreviewLayer?.classList.add('hidden');
-      }
-    };
-
-    tempImg.src = targetSrc;
 
     this.updateFilmstripActive(index);
     this.preloadAdjacentPhotos(index);
+
 
     if (this.isPlaying) this.resetSlideProgressBar();
 
